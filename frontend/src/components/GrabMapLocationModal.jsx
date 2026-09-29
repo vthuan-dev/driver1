@@ -89,10 +89,10 @@ export default function GrabMapLocationModal({
           attributionControl: false
         });
 
-        // Layer bản đồ phong cách Voyager đẹp sáng y hệt Grab / Xanh SM
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-          maxZoom: 19,
-          subdomains: 'abcd'
+        // Layer bản đồ Google Maps chuẩn tiếng Việt (sắc nét, KHÔNG watermark, KHÔNG cần API key)
+        L.tileLayer('https://mt{s}.google.com/vt/lyrs=m&hl=vi&x={x}&y={y}&z={z}', {
+          maxZoom: 20,
+          subdomains: ['0', '1', '2', '3']
         }).addTo(map);
 
         // Lắng nghe khi người dùng kéo / rê bản đồ
@@ -227,33 +227,42 @@ export default function GrabMapLocationModal({
       <div style={{
         position: 'absolute',
         top: '14px',
-        left: '12px',
-        right: '12px',
+        left: 0,
+        right: 0,
         zIndex: 1000,
         display: 'flex',
-        alignItems: 'center',
-        gap: '10px'
+        justifyContent: 'center',
+        padding: '0 12px',
+        pointerEvents: 'none'
       }}>
-        {/* Nút Back */}
-        <button
-          onClick={onClose}
-          style={{
-            width: '42px',
-            height: '42px',
-            borderRadius: '50%',
-            backgroundColor: '#FFFFFF',
-            border: 'none',
-            boxShadow: '0 4px 14px rgba(0,0,0,0.18)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#111827',
-            cursor: 'pointer',
-            flexShrink: 0
-          }}
-        >
-          <ArrowLeft size={20} strokeWidth={2.5} />
-        </button>
+        <div style={{
+          width: '100%',
+          maxWidth: '520px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          pointerEvents: 'auto'
+        }}>
+          {/* Nút Back */}
+          <button
+            onClick={onClose}
+            style={{
+              width: '42px',
+              height: '42px',
+              borderRadius: '50%',
+              backgroundColor: '#FFFFFF',
+              border: 'none',
+              boxShadow: '0 4px 14px rgba(0,0,0,0.18)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#111827',
+              cursor: 'pointer',
+              flexShrink: 0
+            }}
+          >
+            <ArrowLeft size={20} strokeWidth={2.5} />
+          </button>
 
         {/* Thanh tìm kiếm vị trí */}
         <form 
@@ -310,6 +319,7 @@ export default function GrabMapLocationModal({
             <Search size={18} strokeWidth={2.5} />
           </button>
         </form>
+        </div>
       </div>
 
       {/* 2. KHU VỰC BẢN ĐỒ LEAFLET */}
@@ -497,25 +507,33 @@ export default function GrabMapLocationModal({
 
       {/* 3. BOTTOM SHEET HIỂN THỊ CHI TIẾT (CHUẨN ẢNH 3 CỦA GRAB) */}
       <div style={{
-        backgroundColor: '#FFFFFF',
-        borderTopLeftRadius: '24px',
-        borderTopRightRadius: '24px',
-        padding: '12px 18px 22px 18px',
-        boxShadow: '0 -6px 25px rgba(0,0,0,0.12)',
         position: 'relative',
         zIndex: 1001,
-        maxHeight: '44vh',
+        width: '100%',
         display: 'flex',
-        flexDirection: 'column'
+        justifyContent: 'center',
+        backgroundColor: '#FFFFFF',
+        boxShadow: '0 -6px 25px rgba(0,0,0,0.12)',
+        borderTopLeftRadius: '24px',
+        borderTopRightRadius: '24px'
       }}>
-        {/* Thanh kéo gạt nhỏ ở trên */}
         <div style={{
-          width: '38px',
-          height: '4px',
-          backgroundColor: '#D1D5DB',
-          borderRadius: '4px',
-          margin: '0 auto 12px auto'
-        }} />
+          width: '100%',
+          maxWidth: '520px',
+          padding: '12px 18px 22px 18px',
+          display: 'flex',
+          flexDirection: 'column',
+          maxHeight: '44vh',
+          boxSizing: 'border-box'
+        }}>
+          {/* Thanh kéo gạt nhỏ ở trên */}
+          <div style={{
+            width: '38px',
+            height: '4px',
+            backgroundColor: '#D1D5DB',
+            borderRadius: '4px',
+            margin: '0 auto 12px auto'
+          }} />
 
         {/* Thông tin vị trí chính */}
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', marginBottom: '8px' }}>
@@ -673,6 +691,7 @@ export default function GrabMapLocationModal({
           <Check size={20} strokeWidth={3} />
           <span>Chọn điểm đón này</span>
         </button>
+        </div>
       </div>
     </div>
   );

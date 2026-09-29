@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { 
   ArrowLeft, Settings, Camera, CheckCircle2, Star, Phone, 
   MapPin, Car, Calendar, Heart, ShieldCheck, Edit3, Power,
-  Clock, User, RefreshCw, AlertCircle, LogOut, LogIn, Sparkles
+  Clock, User, RefreshCw, AlertCircle, LogOut, LogIn, Sparkles, Navigation
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { useDriver } from '../../context/DriverContext';
+import GrabMapLocationModal from '../../components/GrabMapLocationModal';
 
 export default function ProfileScreen({ onNavigate }) {
   const { 
@@ -27,6 +28,7 @@ export default function ProfileScreen({ onNavigate }) {
 
   const [toggling, setToggling] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showMapModal, setShowMapModal] = useState(false);
   const [editNote, setEditNote] = useState('');
   const [editVehicle, setEditVehicle] = useState('');
   const [editArea, setEditArea] = useState('');
@@ -36,6 +38,19 @@ export default function ProfileScreen({ onNavigate }) {
   const [editDangKiem, setEditDangKiem] = useState('');
   const [editBaoHiem, setEditBaoHiem] = useState('');
   const [saving, setSaving] = useState(false);
+
+  const handleMapSelectLocation = async (loc) => {
+    const chosenArea = loc.name || loc.address;
+    setEditArea(chosenArea);
+    if (driver && driver.id) {
+      try {
+        await api.updateDriverProfile(driver.id, { area: chosenArea });
+        if (refreshDriver) await refreshDriver();
+      } catch (err) {
+        console.error('Error updating driver location:', err);
+      }
+    }
+  };
 
   const handleLogout = () => {
     if (window.confirm('Bạn có chắc chắn muốn đăng xuất tài khoản?')) {
@@ -593,12 +608,45 @@ export default function ProfileScreen({ onNavigate }) {
             )}
           </div>
 
-          {/* Địa bàn hoạt động */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{ color: '#D32F2F' }}><MapPin size={18} /></div>
-            <span style={{ fontSize: '13px', color: '#374151', fontWeight: '500' }}>
-              {d.area && d.area !== 'Chưa có' && !(d.role === 'user' && d.area === 'Thanh Hoá') ? d.area : 'Chưa có'}
-            </span>
+          {/* Địa bàn hoạt động (Bấm vào mở bản đồ định vị chuẩn Grab / Xanh SM) */}
+          <div 
+            onClick={() => setShowMapModal(true)}
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'space-between',
+              gap: '10px',
+              padding: '8px 10px',
+              margin: '0 -10px',
+              borderRadius: '12px',
+              cursor: 'pointer',
+              backgroundColor: '#F9FAFB',
+              border: '1px solid #E5E7EB',
+              transition: 'all 0.15s ease'
+            }}
+            title="Bấm để mở bản đồ định vị như Grab / Xanh SM"
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
+              <div style={{ color: '#D32F2F', flexShrink: 0 }}><MapPin size={18} /></div>
+              <span style={{ fontSize: '13px', color: '#1F2937', fontWeight: '600', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {d.area && d.area !== 'Chưa có' && !(d.role === 'user' && d.area === 'Thanh Hoá') ? d.area : 'Chưa có (Chạm để định vị)'}
+              </span>
+            </div>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              backgroundColor: '#ECFDF5',
+              color: '#059669',
+              padding: '3px 8px',
+              borderRadius: '12px',
+              fontSize: '11px',
+              fontWeight: '700',
+              flexShrink: 0
+            }}>
+              <Navigation size={11} fill="#059669" />
+              <span>Định vị</span>
+            </div>
           </div>
 
           {/* Thông tin xe */}
@@ -965,9 +1013,30 @@ export default function ProfileScreen({ onNavigate }) {
 
             {/* Khu vực / Địa chỉ */}
             <div style={{ marginBottom: '12px' }}>
-              <label style={{ fontSize: '12px', color: '#6B7280', fontWeight: '600', display: 'block', marginBottom: '4px' }}>
-                Khu vực / Địa chỉ hoạt động
-              </label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                <label style={{ fontSize: '12px', color: '#6B7280', fontWeight: '600' }}>
+                  Khu vực / Địa chỉ hoạt động
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setShowMapModal(true)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#00B14F',
+                    fontSize: '11.5px',
+                    fontWeight: '700',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: 0
+                  }}
+                >
+                  <Navigation size={12} fill="#00B14F" />
+                  <span>Chọn trên bản đồ</span>
+                </button>
+              </div>
               <input
                 type="text"
                 value={editArea}
@@ -1191,6 +1260,15 @@ export default function ProfileScreen({ onNavigate }) {
           </div>
         </div>
       )}
+
+      {/* 🗺️ MODAL BẢN ĐỒ ĐỊNH VỊ CHUẨN XANH SM / GRAB */}
+      <GrabMapLocationModal
+        isOpen={showMapModal}
+        onClose={() => setShowMapModal(false)}
+        onSelectLocation={handleMapSelectLocation}
+        initialAddress={d.area}
+        driverAvatar={d.avatar}
+      />
     </div>
   );
 }

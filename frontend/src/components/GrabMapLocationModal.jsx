@@ -199,12 +199,14 @@ export default function GrabMapLocationModal({
     <div style={{
       position: 'fixed',
       inset: 0,
+      height: '100dvh',
       zIndex: 99999,
       backgroundColor: '#000000',
       display: 'flex',
       flexDirection: 'column',
       fontFamily: "'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-      userSelect: 'none'
+      userSelect: 'none',
+      overflow: 'hidden'
     }}>
       {/* 🔴 STYLE CHO RADAR XOAY QUANH VỊ TRÍ CHUẨN XANH SM / GRAB */}
       <style>{`
@@ -226,7 +228,7 @@ export default function GrabMapLocationModal({
       {/* 1. TOP HEADER FLOATING (GIỐNG GRAB / XANH SM) */}
       <div style={{
         position: 'absolute',
-        top: '14px',
+        top: 'max(12px, env(safe-area-inset-top, 12px))',
         left: 0,
         right: 0,
         zIndex: 1000,
@@ -323,7 +325,7 @@ export default function GrabMapLocationModal({
       </div>
 
       {/* 2. KHU VỰC BẢN ĐỒ LEAFLET */}
-      <div style={{ flex: 1, position: 'relative', width: '100%', height: '100%' }}>
+      <div style={{ flex: 1, minHeight: 0, position: 'relative', width: '100%', height: '100%' }}>
         <div 
           ref={mapContainerRef} 
           style={{ width: '100%', height: '100%', backgroundColor: '#E5E7EB' }} 
@@ -515,15 +517,16 @@ export default function GrabMapLocationModal({
         backgroundColor: '#FFFFFF',
         boxShadow: '0 -6px 25px rgba(0,0,0,0.12)',
         borderTopLeftRadius: '24px',
-        borderTopRightRadius: '24px'
+        borderTopRightRadius: '24px',
+        flexShrink: 0,
+        paddingBottom: 'max(12px, env(safe-area-inset-bottom, 12px))'
       }}>
         <div style={{
           width: '100%',
           maxWidth: '520px',
-          padding: '12px 18px 22px 18px',
+          padding: '10px 16px 6px 16px',
           display: 'flex',
           flexDirection: 'column',
-          maxHeight: '44vh',
           boxSizing: 'border-box'
         }}>
           {/* Thanh kéo gạt nhỏ ở trên */}
@@ -532,165 +535,165 @@ export default function GrabMapLocationModal({
             height: '4px',
             backgroundColor: '#D1D5DB',
             borderRadius: '4px',
-            margin: '0 auto 12px auto'
+            margin: '0 auto 8px auto'
           }} />
 
-        {/* Thông tin vị trí chính */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', marginBottom: '8px' }}>
-          <div style={{
-            width: '38px',
-            height: '38px',
-            borderRadius: '50%',
-            backgroundColor: '#004D40',
-            color: '#FFFFFF',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-            marginTop: '2px'
-          }}>
-            <MapPin size={20} color="#FFFFFF" fill="#FFFFFF" />
-          </div>
-
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <h3 style={{
-              margin: '0 0 4px 0',
-              fontSize: '16px',
-              fontWeight: '800',
-              color: '#111827',
-              lineHeight: 1.3,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap'
-            }}>
-              {placeName}
-            </h3>
-            <p style={{
-              margin: 0,
-              fontSize: '12px',
-              color: '#6B7280',
-              lineHeight: 1.4,
-              display: '-webkit-box',
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: 'vertical',
-              overflow: 'hidden'
-            }}>
-              {detailAddress || 'Kéo bản đồ để chọn đúng vị trí bạn đang đứng'}
-            </p>
-          </div>
-
-          <button
-            type="button"
-            style={{
-              background: 'none',
-              border: 'none',
-              color: '#9CA3AF',
-              cursor: 'pointer',
-              padding: '4px'
-            }}
-          >
-            <MoreVertical size={18} />
-          </button>
-        </div>
-
-        {/* Nút trở về đầu trang */}
-        <div style={{ marginBottom: '10px' }}>
-          <span 
-            onClick={() => handleGetGPS()}
-            style={{ 
-              fontSize: '12px', 
-              color: '#2563EB', 
-              fontWeight: '600', 
-              cursor: 'pointer', 
-              display: 'inline-flex', 
-              alignItems: 'center', 
-              gap: '2px' 
-            }}
-          >
-            Trở về đầu trang ↑
-          </span>
-        </div>
-
-        {/* Ô thêm chi tiết điểm đón (tuỳ chọn) */}
-        {showExtraInput ? (
-          <div style={{ marginBottom: '14px' }}>
-            <input
-              type="text"
-              value={extraDetail}
-              onChange={(e) => setExtraDetail(e.target.value)}
-              placeholder="Ví dụ: Tòa nhà A, số nhà 12, gần cây xăng..."
-              style={{
-                width: '100%',
-                boxSizing: 'border-box',
-                padding: '10px 14px',
-                borderRadius: '12px',
-                border: '1.5px solid #00B14F',
-                fontSize: '13px',
-                outline: 'none',
-                color: '#111827'
-              }}
-            />
-          </div>
-        ) : (
-          <button
-            onClick={() => setShowExtraInput(true)}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: '#2563EB',
-              fontSize: '13px',
-              fontWeight: '600',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              width: '100%',
-              padding: '6px 0',
-              marginBottom: '14px'
-            }}
-          >
-            <span>Thêm chi tiết điểm đón (ví dụ: gần cổng)</span>
+          {/* Thông tin vị trí chính */}
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', marginBottom: '6px' }}>
             <div style={{
-              width: '20px',
-              height: '20px',
+              width: '34px',
+              height: '34px',
               borderRadius: '50%',
-              backgroundColor: '#EFF6FF',
-              color: '#2563EB',
+              backgroundColor: '#004D40',
+              color: '#FFFFFF',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '15px',
-              fontWeight: '700'
+              flexShrink: 0,
+              marginTop: '1px'
             }}>
-              +
+              <MapPin size={18} color="#FFFFFF" fill="#FFFFFF" />
             </div>
-          </button>
-        )}
 
-        {/* NÚT CHỌN ĐIỂM ĐÓN NÀY (MÀU XANH LÁ CHUẨN ẢNH 3: #00B14F) */}
-        <button
-          onClick={handleConfirm}
-          style={{
-            width: '100%',
-            backgroundColor: '#00B14F',
-            color: '#FFFFFF',
-            border: 'none',
-            borderRadius: '28px',
-            padding: '14px',
-            fontSize: '16px',
-            fontWeight: '800',
-            cursor: 'pointer',
-            boxShadow: '0 4px 16px rgba(0, 177, 79, 0.35)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px',
-            transition: 'all 0.15s ease'
-          }}
-        >
-          <Check size={20} strokeWidth={3} />
-          <span>Chọn điểm đón này</span>
-        </button>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <h3 style={{
+                margin: '0 0 2px 0',
+                fontSize: '15px',
+                fontWeight: '800',
+                color: '#111827',
+                lineHeight: 1.25,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap'
+              }}>
+                {placeName}
+              </h3>
+              <p style={{
+                margin: 0,
+                fontSize: '11.5px',
+                color: '#6B7280',
+                lineHeight: 1.35,
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden'
+              }}>
+                {detailAddress || 'Kéo bản đồ để chọn đúng vị trí bạn đang đứng'}
+              </p>
+            </div>
+
+            <button
+              type="button"
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#9CA3AF',
+                cursor: 'pointer',
+                padding: '2px'
+              }}
+            >
+              <MoreVertical size={18} />
+            </button>
+          </div>
+
+          {/* Nút trở về đầu trang */}
+          <div style={{ marginBottom: '6px' }}>
+            <span 
+              onClick={() => handleGetGPS()}
+              style={{ 
+                fontSize: '11.5px', 
+                color: '#2563EB', 
+                fontWeight: '600', 
+                cursor: 'pointer', 
+                display: 'inline-flex', 
+                alignItems: 'center', 
+                gap: '2px' 
+              }}
+            >
+              Trở về đầu trang ↑
+            </span>
+          </div>
+
+          {/* Ô thêm chi tiết điểm đón (tuỳ chọn) */}
+          {showExtraInput ? (
+            <div style={{ marginBottom: '8px' }}>
+              <input
+                type="text"
+                value={extraDetail}
+                onChange={(e) => setExtraDetail(e.target.value)}
+                placeholder="Ví dụ: Tòa nhà A, số nhà 12, gần cây xăng..."
+                style={{
+                  width: '100%',
+                  boxSizing: 'border-box',
+                  padding: '8px 12px',
+                  borderRadius: '10px',
+                  border: '1.5px solid #00B14F',
+                  fontSize: '12.5px',
+                  outline: 'none',
+                  color: '#111827'
+                }}
+              />
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowExtraInput(true)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#2563EB',
+                fontSize: '12.5px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                width: '100%',
+                padding: '4px 0',
+                marginBottom: '8px'
+              }}
+            >
+              <span>Thêm chi tiết điểm đón (ví dụ: gần cổng)</span>
+              <div style={{
+                width: '18px',
+                height: '18px',
+                borderRadius: '50%',
+                backgroundColor: '#EFF6FF',
+                color: '#2563EB',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '14px',
+                fontWeight: '700'
+              }}>
+                +
+              </div>
+            </button>
+          )}
+
+          {/* NÚT CHỌN ĐIỂM ĐÓN NÀY (MÀU XANH LÁ CHUẨN ẢNH 3: #00B14F) */}
+          <button
+            onClick={handleConfirm}
+            style={{
+              width: '100%',
+              backgroundColor: '#00B14F',
+              color: '#FFFFFF',
+              border: 'none',
+              borderRadius: '26px',
+              padding: '12px',
+              fontSize: '15px',
+              fontWeight: '800',
+              cursor: 'pointer',
+              boxShadow: '0 4px 16px rgba(0, 177, 79, 0.35)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <Check size={19} strokeWidth={3} />
+            <span>Chọn điểm đón này</span>
+          </button>
         </div>
       </div>
     </div>

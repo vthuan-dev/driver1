@@ -18,12 +18,12 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login', titl
   
   // Login form
   const [phone, setPhone] = useState('');
-  const [password, setPassword] = useState('123456');
+  const [password, setPassword] = useState('');
 
   // Register form
   const [regName, setRegName] = useState('');
   const [regPhone, setRegPhone] = useState('');
-  const [regPassword, setRegPassword] = useState('123456');
+  const [regPassword, setRegPassword] = useState('');
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -270,7 +270,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login', titl
 
             <div style={{ marginBottom: '18px' }}>
               <label style={{ fontSize: '12px', color: '#4B5563', fontWeight: '600', display: 'block', marginBottom: '6px' }}>
-                Mật khẩu (mặc định: 123456)
+                Mật khẩu
               </label>
               <div style={{
                 display: 'flex',
@@ -408,7 +408,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login', titl
                 <Lock size={16} color="#9CA3AF" />
                 <input
                   type="password"
-                  placeholder="Tạo mật khẩu (mặc định 123456)"
+                  placeholder="Nhập mật khẩu..."
                   value={regPassword}
                   onChange={(e) => setRegPassword(e.target.value)}
                   style={{

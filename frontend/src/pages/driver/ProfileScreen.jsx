@@ -29,6 +29,7 @@ export default function ProfileScreen({ onNavigate }) {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editNote, setEditNote] = useState('');
   const [editVehicle, setEditVehicle] = useState('');
+  const [editArea, setEditArea] = useState('');
   const [editCccd, setEditCccd] = useState('');
   const [editGplx, setEditGplx] = useState('');
   const [editGplxClass, setEditGplxClass] = useState('B2');
@@ -61,6 +62,8 @@ export default function ProfileScreen({ onNavigate }) {
   const handleOpenEdit = () => {
     setEditNote(driver?.note || '');
     setEditVehicle(driver?.vehicle_info || '');
+    const currentArea = driver?.area && driver.area !== 'Chưa có' && !(driver.role === 'user' && driver.area === 'Thanh Hoá') ? driver.area : '';
+    setEditArea(currentArea);
     const docDetails = driver?.document_details || {};
     setEditCccd(docDetails.cccd?.number || '');
     setEditGplx(docDetails.gplx?.number || '');
@@ -77,6 +80,7 @@ export default function ProfileScreen({ onNavigate }) {
       await api.updateDriverProfile(driver.id, {
         note: editNote,
         vehicle_info: editVehicle,
+        area: editArea.trim() || 'Chưa có',
         document_details: {
           cccd: editCccd ? { number: editCccd, updated_at: new Date().toISOString() } : undefined,
           gplx: editGplx ? { number: editGplx, class: editGplxClass || 'B2', updated_at: new Date().toISOString() } : undefined,
@@ -593,7 +597,7 @@ export default function ProfileScreen({ onNavigate }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div style={{ color: '#D32F2F' }}><MapPin size={18} /></div>
             <span style={{ fontSize: '13px', color: '#374151', fontWeight: '500' }}>
-              {d.area || 'Chưa cập nhật khu vực'}
+              {d.area && d.area !== 'Chưa có' && !(d.role === 'user' && d.area === 'Thanh Hoá') ? d.area : 'Chưa có'}
             </span>
           </div>
 
@@ -958,6 +962,27 @@ export default function ProfileScreen({ onNavigate }) {
             <h3 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '14px', color: '#111827' }}>
               Chỉnh sửa thông tin hồ sơ & Giấy tờ
             </h3>
+
+            {/* Khu vực / Địa chỉ */}
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ fontSize: '12px', color: '#6B7280', fontWeight: '600', display: 'block', marginBottom: '4px' }}>
+                Khu vực / Địa chỉ hoạt động
+              </label>
+              <input
+                type="text"
+                value={editArea}
+                onChange={(e) => setEditArea(e.target.value)}
+                placeholder="Ví dụ: Chưa có, hoặc điền Tỉnh/Thành phố..."
+                style={{
+                  width: '100%',
+                  boxSizing: 'border-box',
+                  padding: '10px 12px',
+                  borderRadius: '10px',
+                  border: '1px solid #D1D5DB',
+                  fontSize: '13px'
+                }}
+              />
+            </div>
 
             {/* Thông tin phương tiện */}
             <div style={{ marginBottom: '12px' }}>

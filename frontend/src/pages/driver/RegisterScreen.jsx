@@ -64,7 +64,7 @@ export default function RegisterScreen({ onNavigate, onRegistrationSuccess }) {
   const [formData, setFormData] = useState({
     fullName: driver?.full_name || '',
     phone: driver?.phone || '',
-    area: driver?.area || 'Thanh Hoá',
+    area: driver?.area && driver.area !== 'Chưa có' && !(driver.role === 'user' && driver.area === 'Thanh Hoá') ? driver.area : '',
     vehicleInfo: driver?.vehicle_info && driver.vehicle_info !== 'Chưa đăng ký' ? driver.vehicle_info : '',
     serviceTypes: driver?.service_types || ['lai_xe_ho']
   });
@@ -76,7 +76,7 @@ export default function RegisterScreen({ onNavigate, onRegistrationSuccess }) {
         ...prev,
         fullName: driver.full_name || prev.fullName,
         phone: driver.phone || prev.phone,
-        area: driver.area || prev.area,
+        area: driver.area && driver.area !== 'Chưa có' && !(driver.role === 'user' && driver.area === 'Thanh Hoá') ? driver.area : prev.area,
         vehicleInfo: driver.vehicle_info && driver.vehicle_info !== 'Chưa đăng ký' ? driver.vehicle_info : prev.vehicleInfo
       }));
     }
@@ -589,7 +589,7 @@ export default function RegisterScreen({ onNavigate, onRegistrationSuccess }) {
             }}>
               <div>• <strong>Họ tên:</strong> {driver.full_name}</div>
               <div>• <strong>SĐT:</strong> {driver.phone}</div>
-              <div>• <strong>Khu vực:</strong> {driver.area || 'Thanh Hoá'}</div>
+              <div>• <strong>Khu vực:</strong> {driver.area && driver.area !== 'Chưa có' && !(driver.role === 'user' && driver.area === 'Thanh Hoá') ? driver.area : 'Chưa có'}</div>
               <div>• <strong>Trạng thái:</strong> <span style={{ color: '#B45309', fontWeight: '700' }}>Chờ Admin kích hoạt</span></div>
             </div>
 

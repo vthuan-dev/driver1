@@ -44,7 +44,7 @@ exports.registerUser = async (req, res) => {
       password: password || '123456',
       role: 'user', // Mới chỉ là Người dùng thông thường, chưa phải Tài xế
       status: 'pending',
-      area: 'Thanh Hoá',
+      area: 'Chưa có',
       service_types: ['lai_xe_ho'],
       vehicle_info: 'Chưa đăng ký',
       experience: 'Mới tham gia',

@@ -78,7 +78,7 @@ export default function GrabMapLocationModal({
   useEffect(() => {
     if (!isOpen) return;
 
-    let timer = setTimeout(() => {
+    let timer = setTimeout(async () => {
       if (!mapContainerRef.current) return;
 
       if (!mapInstanceRef.current) {
@@ -104,7 +104,33 @@ export default function GrabMapLocationModal({
 
         mapInstanceRef.current = map;
 
-        // Tự động định vị GPS thực tế của thiết bị
+        // Nếu trong hồ sơ đã có sẵn địa chỉ (ví dụ: "Tỉnh Cao Bằng")
+        // => Mở đúng vị trí đã lưu đó trước!
+        if (initialAddress && initialAddress !== 'Chưa có' && initialAddress.trim()) {
+          try {
+            setIsGeocoding(true);
+            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(initialAddress)}&countrycodes=vn&limit=1`, {
+              headers: { 'Accept-Language': 'vi-VN,vi;q=0.9' }
+            });
+            const data = await res.json();
+            if (data && data.length > 0) {
+              const lat = parseFloat(data[0].lat);
+              const lon = parseFloat(data[0].lon);
+              map.setView([lat, lon], 14, { animate: false });
+              setCurrentCoords({ lat, lng: lon });
+              setPlaceName(data[0].name || initialAddress);
+              setDetailAddress(data[0].display_name);
+              setIsGeocoding(false);
+              return;
+            }
+          } catch (e) {
+            console.warn('Geocoding initial address failed:', e);
+          } finally {
+            setIsGeocoding(false);
+          }
+        }
+
+        // Nếu chưa có địa chỉ ('Chưa có') => Tự động định vị GPS thực tế
         handleGetGPS(map);
       } else {
         mapInstanceRef.current.invalidateSize();

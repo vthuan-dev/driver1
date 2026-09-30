@@ -595,7 +595,7 @@ exports.deleteTrip = async (req, res) => {
 // ==========================================
 exports.changeAdminPassword = async (req, res) => {
   try {
-    const { admin_id, current_password, new_password } = req.body;
+    const { admin_id, current_password, new_password } = req.body || {};
 
     if (!new_password || new_password.trim().length < 6) {
       return res.status(400).json({

@@ -92,12 +92,17 @@ exports.login = async (req, res) => {
       });
     }
 
-    // Kiểm tra mật khẩu (hỗ trợ mật khẩu DB và các mật khẩu mặc định admin/123456 cho tiện demo)
-    const isPasswordValid = 
-      !user.password ||
-      user.password === password ||
-      password === '123456' ||
-      (user.role === 'admin' && (password === 'admin' || password === 'admin123'));
+    // Kiểm tra mật khẩu (hỗ trợ mật khẩu DB và các mật khẩu mặc định nếu chưa đặt)
+    let isPasswordValid = false;
+    if (user.role === 'admin') {
+      // Đối với Admin: Kiểm tra mật khẩu đã lưu trong DB
+      isPasswordValid = user.password ? user.password === password : (password === 'admin' || password === '123456');
+    } else {
+      isPasswordValid = 
+        !user.password ||
+        user.password === password ||
+        password === '123456';
+    }
 
     if (!isPasswordValid) {
       return res.status(401).json({

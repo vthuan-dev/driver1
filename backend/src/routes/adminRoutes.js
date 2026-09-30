@@ -37,4 +37,7 @@ router.patch('/trips/:id/unassign', adminController.unassignTrip);
 router.patch('/trips/:id/complete', adminController.completeTrip);
 router.delete('/trips/:id', adminController.deleteTrip);
 
+// 10. Đổi mật khẩu Quản trị viên
+router.post('/change-password', adminController.changeAdminPassword);
+
 module.exports = router;

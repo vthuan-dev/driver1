@@ -589,3 +589,67 @@ exports.deleteTrip = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+// ==========================================
+// 10. ĐỔI MẬT KHẨU QUẢN TRỊ VIÊN (ADMIN)
+// ==========================================
+exports.changeAdminPassword = async (req, res) => {
+  try {
+    const { admin_id, current_password, new_password } = req.body;
+
+    if (!new_password || new_password.trim().length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Mật khẩu mới phải có ít nhất 6 ký tự'
+      });
+    }
+
+    // Tìm tài khoản admin theo ID hoặc phone = 'admin'
+    let admin = null;
+    if (admin_id) {
+      admin = await Driver.findOne({ where: { id: admin_id, role: 'admin' } });
+    }
+    if (!admin) {
+      admin = await Driver.findOne({ where: { phone: 'admin', role: 'admin' } });
+    }
+
+    if (!admin) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy tài khoản Quản trị viên'
+      });
+    }
+
+    // Kiểm tra mật khẩu hiện tại nếu có gửi lên
+    if (current_password) {
+      const isValid = 
+        admin.password === current_password ||
+        (!admin.password && (current_password === 'admin' || current_password === '123456'));
+
+      if (!isValid) {
+        return res.status(400).json({
+          success: false,
+          message: 'Mật khẩu hiện tại không chính xác'
+        });
+      }
+    }
+
+    // Cập nhật mật khẩu mới
+    admin.password = new_password.trim();
+    await admin.save();
+
+    res.json({
+      success: true,
+      message: 'Đổi mật khẩu Quản trị viên thành công! Mật khẩu mới đã được kích hoạt.',
+      data: {
+        id: admin.id,
+        phone: admin.phone,
+        full_name: admin.full_name
+      }
+    });
+  } catch (error) {
+    console.error('changeAdminPassword error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+

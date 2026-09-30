@@ -61,5 +61,7 @@ export const api = {
   },
   unassignTrip: (id) => request(`/admin/trips/${id}/unassign`, { method: 'PATCH' }),
   adminCompleteTrip: (id) => request(`/admin/trips/${id}/complete`, { method: 'PATCH' }),
-  deleteTrip: (id) => request(`/admin/trips/${id}`, { method: 'DELETE' })
+  deleteTrip: (id) => request(`/admin/trips/${id}`, { method: 'DELETE' }),
+  changeAdminPassword: (data) => request('/admin/change-password', { method: 'POST', body: JSON.stringify(data) })
 };
+

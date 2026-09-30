@@ -4,7 +4,8 @@ import {
   XCircle, Trash2, Plus, Sparkles, RefreshCw, Star, ShieldAlert, 
   DollarSign, TrendingUp, AlertTriangle, ShieldCheck, Power, Search, LogOut,
   Bell, Volume2, VolumeX, Clock, ChevronLeft, ChevronRight, Menu, X,
-  Radio, MapPin, Phone, RotateCcw, Check, LayoutGrid, List, UserCheck
+  Radio, MapPin, Phone, RotateCcw, Check, LayoutGrid, List, UserCheck,
+  KeyRound, Lock, Eye, EyeOff
 } from 'lucide-react';
 import { api } from '../services/api';
 import { useDriver } from '../context/DriverContext';
@@ -41,6 +42,63 @@ export default function AdminLayout({ onSwitchToDriverApp }) {
     localStorage.removeItem('admin_user');
     setAdminUser(null);
   };
+
+  // Modal Đổi Mật Khẩu Admin
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [showCurrentPass, setShowCurrentPass] = useState(false);
+  const [showNewPass, setShowNewPass] = useState(false);
+  const [passError, setPassError] = useState('');
+  const [passSuccess, setPassSuccess] = useState('');
+  const [savingPass, setSavingPass] = useState(false);
+
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    setPassError('');
+    setPassSuccess('');
+
+    if (!passwordForm.newPassword || passwordForm.newPassword.trim().length < 6) {
+      setPassError('Mật khẩu mới phải có ít nhất 6 ký tự');
+      return;
+    }
+
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      setPassError('Mật khẩu xác nhận không trùng khớp');
+      return;
+    }
+
+    try {
+      setSavingPass(true);
+      const res = await api.changeAdminPassword({
+        admin_id: adminUser?.id,
+        current_password: passwordForm.currentPassword,
+        new_password: passwordForm.newPassword
+      });
+
+      setPassSuccess(res.message || 'Đổi mật khẩu Quản trị viên thành công!');
+      if (adminUser) {
+        const updated = { ...adminUser, password: passwordForm.newPassword };
+        localStorage.setItem('admin_user', JSON.stringify(updated));
+        setAdminUser(updated);
+      }
+      showNotification('Đổi mật khẩu Quản trị viên thành công!', 'success');
+
+      setTimeout(() => {
+        setShowPasswordModal(false);
+        setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+        setPassSuccess('');
+      }, 1500);
+    } catch (err) {
+      setPassError(err.message || 'Mật khẩu hiện tại không chính xác');
+    } finally {
+      setSavingPass(false);
+    }
+  };
+
   const getAdminTabFromUrl = () => {
     const pathname = window.location.pathname.toLowerCase();
     if (pathname.includes('/admin/drivers')) return 'drivers';
@@ -823,6 +881,37 @@ export default function AdminLayout({ onSwitchToDriverApp }) {
             </div>
           </div>
           <button
+            type="button"
+            onClick={() => {
+              setPassError('');
+              setPassSuccess('');
+              setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+              setShowPasswordModal(true);
+            }}
+            style={{
+              width: '100%',
+              backgroundColor: 'rgba(245, 158, 11, 0.12)',
+              color: '#FBBF24',
+              border: '1px solid rgba(245, 158, 11, 0.3)',
+              borderRadius: '10px',
+              padding: '9px',
+              fontWeight: '700',
+              fontSize: '13px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              marginBottom: '8px',
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(245, 158, 11, 0.2)'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(245, 158, 11, 0.12)'}
+          >
+            <KeyRound size={15} />
+            <span>ĐỔI MẬT KHẨU</span>
+          </button>
+          <button
             onClick={handleAdminLogout}
             style={{
               width: '100%',
@@ -1225,6 +1314,33 @@ export default function AdminLayout({ onSwitchToDriverApp }) {
             >
               <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
               {!isMobile && <span>Làm mới</span>}
+            </button>
+
+            <button
+              onClick={() => {
+                setPassError('');
+                setPassSuccess('');
+                setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+                setShowPasswordModal(true);
+              }}
+              title="Đổi mật khẩu quản trị viên"
+              style={{
+                backgroundColor: '#FEF3C7',
+                color: '#B45309',
+                border: '1px solid #FDE68A',
+                borderRadius: '10px',
+                padding: isMobile ? '8px 10px' : '8px 14px',
+                fontSize: '13px',
+                fontWeight: '700',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                transition: 'all 0.2s'
+              }}
+            >
+              <KeyRound size={15} />
+              {!isMobile && <span>Đổi mật khẩu</span>}
             </button>
 
             <button
@@ -3483,6 +3599,281 @@ export default function AdminLayout({ onSwitchToDriverApp }) {
                     {isSavingDocs ? 'Đang lưu...' : 'LƯU PHÊ DUYỆT'}
                   </button>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* 🔐 MODAL ĐỔI MẬT KHẨU QUẢN TRỊ VIÊN (ADMIN) */}
+          {showPasswordModal && (
+            <div style={{
+              position: 'fixed',
+              inset: 0,
+              backgroundColor: 'rgba(15, 23, 42, 0.75)',
+              backdropFilter: 'blur(5px)',
+              zIndex: 9999,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '16px'
+            }}>
+              <div style={{
+                backgroundColor: '#1E293B',
+                borderRadius: '20px',
+                border: '1px solid #334155',
+                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.08)',
+                maxWidth: '440px',
+                width: '100%',
+                overflow: 'hidden',
+                color: '#F8FAFC'
+              }}>
+                {/* Modal Header */}
+                <div style={{
+                  padding: '20px 24px',
+                  borderBottom: '1px solid #334155',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  backgroundColor: 'rgba(15, 23, 42, 0.5)'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{
+                      width: '40px',
+                      height: '40px',
+                      borderRadius: '12px',
+                      backgroundColor: 'rgba(245, 158, 11, 0.2)',
+                      border: '1px solid rgba(245, 158, 11, 0.4)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#FBBF24'
+                    }}>
+                      <KeyRound size={20} />
+                    </div>
+                    <div>
+                      <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: '#FFFFFF' }}>
+                        Đổi mật khẩu Quản trị viên
+                      </h3>
+                      <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: '#94A3B8' }}>
+                        Tài khoản: <strong style={{ color: '#E2E8F0' }}>{adminUser?.phone || 'admin'}</strong>
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowPasswordModal(false)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#94A3B8',
+                      cursor: 'pointer',
+                      padding: '6px',
+                      borderRadius: '8px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+
+                {/* Modal Body */}
+                <form onSubmit={handleChangePassword} style={{ padding: '24px' }}>
+                  {passError && (
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                      border: '1px solid rgba(239, 68, 68, 0.4)',
+                      borderRadius: '10px',
+                      padding: '10px 14px',
+                      color: '#FCA5A5',
+                      fontSize: '13px',
+                      marginBottom: '16px'
+                    }}>
+                      <AlertCircle size={16} style={{ flexShrink: 0 }} />
+                      <span>{passError}</span>
+                    </div>
+                  )}
+
+                  {passSuccess && (
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      backgroundColor: 'rgba(34, 197, 94, 0.15)',
+                      border: '1px solid rgba(34, 197, 94, 0.4)',
+                      borderRadius: '10px',
+                      padding: '10px 14px',
+                      color: '#86EFAC',
+                      fontSize: '13px',
+                      marginBottom: '16px'
+                    }}>
+                      <CheckCircle2 size={16} style={{ flexShrink: 0 }} />
+                      <span>{passSuccess}</span>
+                    </div>
+                  )}
+
+                  {/* Mật khẩu hiện tại */}
+                  <div style={{ marginBottom: '16px' }}>
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#CBD5E1', marginBottom: '6px' }}>
+                      Mật khẩu hiện tại
+                    </label>
+                    <div style={{ position: 'relative' }}>
+                      <input
+                        type={showCurrentPass ? 'text' : 'password'}
+                        value={passwordForm.currentPassword}
+                        onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
+                        placeholder="Nhập mật khẩu hiện tại..."
+                        required
+                        style={{
+                          width: '100%',
+                          boxSizing: 'border-box',
+                          backgroundColor: '#0F172A',
+                          border: '1px solid #334155',
+                          borderRadius: '10px',
+                          padding: '11px 42px 11px 14px',
+                          color: '#FFFFFF',
+                          fontSize: '14px',
+                          outline: 'none'
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowCurrentPass(!showCurrentPass)}
+                        style={{
+                          position: 'absolute',
+                          right: '12px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          background: 'none',
+                          border: 'none',
+                          color: '#64748B',
+                          cursor: 'pointer',
+                          padding: 0,
+                          display: 'flex'
+                        }}
+                      >
+                        {showCurrentPass ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Mật khẩu mới */}
+                  <div style={{ marginBottom: '16px' }}>
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#CBD5E1', marginBottom: '6px' }}>
+                      Mật khẩu mới (tối thiểu 6 ký tự)
+                    </label>
+                    <div style={{ position: 'relative' }}>
+                      <input
+                        type={showNewPass ? 'text' : 'password'}
+                        value={passwordForm.newPassword}
+                        onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                        placeholder="Nhập mật khẩu mới..."
+                        required
+                        minLength={6}
+                        style={{
+                          width: '100%',
+                          boxSizing: 'border-box',
+                          backgroundColor: '#0F172A',
+                          border: '1px solid #334155',
+                          borderRadius: '10px',
+                          padding: '11px 42px 11px 14px',
+                          color: '#FFFFFF',
+                          fontSize: '14px',
+                          outline: 'none'
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowNewPass(!showNewPass)}
+                        style={{
+                          position: 'absolute',
+                          right: '12px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          background: 'none',
+                          border: 'none',
+                          color: '#64748B',
+                          cursor: 'pointer',
+                          padding: 0,
+                          display: 'flex'
+                        }}
+                      >
+                        {showNewPass ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Xác nhận mật khẩu mới */}
+                  <div style={{ marginBottom: '22px' }}>
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#CBD5E1', marginBottom: '6px' }}>
+                      Xác nhận mật khẩu mới
+                    </label>
+                    <input
+                      type={showNewPass ? 'text' : 'password'}
+                      value={passwordForm.confirmPassword}
+                      onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                      placeholder="Nhập lại mật khẩu mới..."
+                      required
+                      style={{
+                        width: '100%',
+                        boxSizing: 'border-box',
+                        backgroundColor: '#0F172A',
+                        border: '1px solid #334155',
+                        borderRadius: '10px',
+                        padding: '11px 14px',
+                        color: '#FFFFFF',
+                        fontSize: '14px',
+                        outline: 'none'
+                      }}
+                    />
+                  </div>
+
+                  {/* Nút hành động */}
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setShowPasswordModal(false)}
+                      style={{
+                        flex: 1,
+                        backgroundColor: '#334155',
+                        color: '#E2E8F0',
+                        border: 'none',
+                        borderRadius: '10px',
+                        padding: '12px',
+                        fontSize: '14px',
+                        fontWeight: '700',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Hủy
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={savingPass}
+                      style={{
+                        flex: 1.5,
+                        backgroundColor: '#D97706',
+                        color: '#FFFFFF',
+                        border: 'none',
+                        borderRadius: '10px',
+                        padding: '12px',
+                        fontSize: '14px',
+                        fontWeight: '800',
+                        cursor: savingPass ? 'not-allowed' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        boxShadow: '0 4px 14px rgba(217, 119, 6, 0.4)'
+                      }}
+                    >
+                      {savingPass ? 'Đang lưu...' : 'LƯU MẬT KHẨU MỚI'}
+                    </button>
+                  </div>
+                </form>
               </div>
             </div>
           )}

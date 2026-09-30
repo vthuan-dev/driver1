@@ -597,10 +597,10 @@ exports.changeAdminPassword = async (req, res) => {
   try {
     const { admin_id, current_password, new_password } = req.body || {};
 
-    if (!new_password || new_password.trim().length < 6) {
+    if (!new_password || new_password.trim().length < 4) {
       return res.status(400).json({
         success: false,
-        message: 'Mật khẩu mới phải có ít nhất 6 ký tự'
+        message: 'Mật khẩu mới phải có ít nhất 4 ký tự'
       });
     }
 

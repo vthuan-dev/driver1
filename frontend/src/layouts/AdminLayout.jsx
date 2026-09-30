@@ -61,8 +61,8 @@ export default function AdminLayout({ onSwitchToDriverApp }) {
     setPassError('');
     setPassSuccess('');
 
-    if (!passwordForm.newPassword || passwordForm.newPassword.trim().length < 6) {
-      setPassError('Mật khẩu mới phải có ít nhất 6 ký tự');
+    if (!passwordForm.newPassword || passwordForm.newPassword.trim().length < 4) {
+      setPassError('Mật khẩu mới phải có ít nhất 4 ký tự');
       return;
     }
 
@@ -3763,7 +3763,7 @@ export default function AdminLayout({ onSwitchToDriverApp }) {
                   {/* Mật khẩu mới */}
                   <div style={{ marginBottom: '16px' }}>
                     <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#CBD5E1', marginBottom: '6px' }}>
-                      Mật khẩu mới (tối thiểu 6 ký tự)
+                      Mật khẩu mới (tối thiểu 4 ký tự)
                     </label>
                     <div style={{ position: 'relative' }}>
                       <input
@@ -3772,7 +3772,7 @@ export default function AdminLayout({ onSwitchToDriverApp }) {
                         onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
                         placeholder="Nhập mật khẩu mới..."
                         required
-                        minLength={6}
+                        minLength={4}
                         style={{
                           width: '100%',
                           boxSizing: 'border-box',

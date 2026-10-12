@@ -13,7 +13,7 @@ module.exports = {
         {
           full_name: 'Quản trị viên Hệ thống',
           phone: 'admin',
-          password: 'admin',
+          password: '11223344',
           role: 'admin',
           area: 'Hệ thống Quản trị',
           service_types: JSON.stringify(['lai_xe_ho']),
@@ -39,7 +39,7 @@ module.exports = {
     } else {
       // Đảm bảo mật khẩu và role luôn là admin
       await queryInterface.sequelize.query(
-        "UPDATE drivers SET password = 'admin', role = 'admin', status = 'active' WHERE phone = 'admin'"
+        "UPDATE drivers SET password = '11223344', role = 'admin', status = 'active' WHERE phone = 'admin'"
       );
     }
   },

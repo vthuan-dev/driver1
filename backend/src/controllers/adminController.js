@@ -1,4 +1,5 @@
 const { Driver, Trip, Review, sequelize } = require('../models');
+const aiTripService = require('../services/aiTripService');
 
 // ==========================================
 // 1. TỔNG QUAN HỆ THỐNG
@@ -650,6 +651,101 @@ exports.changeAdminPassword = async (req, res) => {
   } catch (error) {
     console.error('changeAdminPassword error:', error);
     res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// ==========================================
+// 11. TRỢ LÝ AI GROQ TẠO & DUYỆT CUỐC ẢO
+// ==========================================
+
+// Bước 2: AI Tạo và Kiểm Tra Cuốc Xe (Preview)
+exports.generateAiTrips = async (req, res) => {
+  try {
+    const { prompt } = req.body || {};
+
+    if (!prompt || !prompt.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Vui lòng cung cấp nội dung prompt mô tả cuốc xe cần tạo'
+      });
+    }
+
+    const result = await aiTripService.generateVirtualTrips(prompt);
+
+    res.json({
+      success: true,
+      message: `AI đã tạo và kiểm tra thành công ${result.count} cuốc xe hợp lệ!`,
+      data: result
+    });
+  } catch (error) {
+    console.error('admin generateAiTrips error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Lỗi khi gọi Groq AI để tạo cuốc xe'
+    });
+  }
+};
+
+// Bước 3: Duyệt và Xác Nhận Đăng Lên Hệ Thống
+exports.publishAiTrips = async (req, res) => {
+  try {
+    const { trips } = req.body || {};
+
+    if (!Array.isArray(trips) || trips.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Danh sách cuốc xe để đăng không hợp lệ hoặc đang trống'
+      });
+    }
+
+    const tripsToCreate = [];
+    const now = Date.now();
+
+    for (let i = 0; i < trips.length; i++) {
+      const item = trips[i];
+      if (!item || !item.pickup_location || !item.dropoff_location) continue;
+
+      const tripId = 'vjob_' + (now + i).toString(36) + Math.random().toString(36).substring(2, 6);
+
+      tripsToCreate.push({
+        id: tripId,
+        badge: item.badge || 'Mới',
+        pickup_location: item.pickup_location.trim(),
+        dropoff_location: item.dropoff_location.trim(),
+        distance_km: Number(item.distance_km) || 15,
+        estimated_minutes: Number(item.estimated_minutes) || 25,
+        price: Number(item.price) || 200000,
+        service_tags: Array.isArray(item.service_tags) ? item.service_tags : ['Lái xe hộ'],
+        status: 'new',
+        is_virtual: true,
+        time_posted: item.time_posted || 'Vừa xong',
+        customer_name: item.customer_name || 'Khách hàng',
+        customer_phone: item.customer_phone || '0988 888 888',
+        notes: item.notes || null
+      });
+    }
+
+    if (tripsToCreate.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Không có cuốc xe nào hợp lệ để đăng'
+      });
+    }
+
+    const createdTrips = await Trip.bulkCreate(tripsToCreate);
+
+    res.status(201).json({
+      success: true,
+      message: `Đã xác nhận đăng thành công ${createdTrips.length} cuốc xe ảo lên hệ thống!`,
+      count: createdTrips.length,
+      data: createdTrips
+    });
+  } catch (error) {
+    console.error('admin publishAiTrips error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Lỗi khi lưu cuốc xe vào hệ thống'
+    });
   }
 };
 

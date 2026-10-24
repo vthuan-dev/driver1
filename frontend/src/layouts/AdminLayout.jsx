@@ -5,7 +5,7 @@ import {
   DollarSign, TrendingUp, AlertTriangle, ShieldCheck, Power, Search, LogOut,
   Bell, Volume2, VolumeX, Clock, ChevronLeft, ChevronRight, Menu, X,
   Radio, MapPin, Phone, RotateCcw, Check, LayoutGrid, List, UserCheck,
-  KeyRound, Lock, Eye, EyeOff
+  KeyRound, Lock, Eye, EyeOff, Bot, Wand2, Send, CheckSquare, Square, Edit3
 } from 'lucide-react';
 import { api } from '../services/api';
 import { useDriver } from '../context/DriverContext';
@@ -179,6 +179,103 @@ export default function AdminLayout({ onSwitchToDriverApp }) {
     customer_phone: '',
     is_virtual: false
   });
+
+  // Trợ lý AI Groq tạo cuốc xe ảo (Quy trình 3 bước)
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiPreviewTrips, setAiPreviewTrips] = useState([]);
+  const [selectedPreviewIds, setSelectedPreviewIds] = useState(new Set());
+  const [aiStats, setAiStats] = useState(null);
+  const [aiPublishing, setAiPublishing] = useState(false);
+  const [showAiCard, setShowAiCard] = useState(true);
+
+  const handleGenerateAiTrips = async (customPrompt) => {
+    const promptToSend = (customPrompt || aiPrompt || '').trim();
+    if (!promptToSend) {
+      showNotification('Vui lòng nhập lệnh prompt mô tả cuốc xe', 'error');
+      return;
+    }
+    try {
+      setAiLoading(true);
+      if (customPrompt) setAiPrompt(customPrompt);
+      const res = await api.generateAiTrips({ prompt: promptToSend });
+      if (res && res.data && Array.isArray(res.data.trips)) {
+        setAiPreviewTrips(res.data.trips);
+        setSelectedPreviewIds(new Set(res.data.trips.map(t => t.preview_id)));
+        setAiStats(res.data.stats || null);
+        showNotification(res.message || `AI đã tạo ${res.data.trips.length} cuốc xe hợp lệ!`, 'success');
+      } else {
+        throw new Error('Dữ liệu AI trả về không đúng định dạng');
+      }
+    } catch (err) {
+      showNotification(err.message || 'Lỗi khi gọi AI tạo cuốc xe', 'error');
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const handleToggleSelectTrip = (id) => {
+    setSelectedPreviewIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleToggleSelectAll = () => {
+    if (selectedPreviewIds.size === aiPreviewTrips.length) {
+      setSelectedPreviewIds(new Set());
+    } else {
+      setSelectedPreviewIds(new Set(aiPreviewTrips.map(t => t.preview_id)));
+    }
+  };
+
+  const handleDeletePreviewTrip = (id) => {
+    setAiPreviewTrips(prev => prev.filter(t => t.preview_id !== id));
+    setSelectedPreviewIds(prev => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+  };
+
+  const handleUpdatePreviewTrip = (id, field, value) => {
+    setAiPreviewTrips(prev => prev.map(t => {
+      if (t.preview_id === id) {
+        return { ...t, [field]: value };
+      }
+      return t;
+    }));
+  };
+
+  const handlePublishAiTrips = async () => {
+    const selectedList = aiPreviewTrips.filter(t => selectedPreviewIds.has(t.preview_id));
+    if (selectedList.length === 0) {
+      showNotification('Vui lòng chọn ít nhất 1 cuốc xe để đăng', 'error');
+      return;
+    }
+    try {
+      setAiPublishing(true);
+      const res = await api.publishAiTrips({ trips: selectedList });
+      showNotification(res.message || `Đã đăng thành công ${selectedList.length} cuốc xe ảo!`, 'success');
+      setAiPreviewTrips([]);
+      setSelectedPreviewIds(new Set());
+      setAiStats(null);
+      loadAllData();
+      if (refreshTripCounts) refreshTripCounts();
+    } catch (err) {
+      showNotification(err.message || 'Lỗi khi đăng cuốc xe lên hệ thống', 'error');
+    } finally {
+      setAiPublishing(false);
+    }
+  };
+
+  const handleCancelAiPreview = () => {
+    setAiPreviewTrips([]);
+    setSelectedPreviewIds(new Set());
+    setAiStats(null);
+  };
 
   const [driverFilter, setDriverFilter] = useState('all'); // 'all', 'pending', 'active', 'blocked'
 
@@ -1748,6 +1845,493 @@ export default function AdminLayout({ onSwitchToDriverApp }) {
           {/* ========================================================= */}
           {activeTab === 'trips' && (
             <div>
+              {/* ========================================================= */}
+              {/* 🌟 TRỢ LÝ AI GROQ TẠO CUỐC ẢO (QUY TRÌNH 3 BƯỚC) */}
+              {/* ========================================================= */}
+              <div style={{
+                background: 'linear-gradient(135deg, #1E1B4B 0%, #0F172A 100%)',
+                borderRadius: '20px',
+                padding: isMobile ? '18px 14px' : '24px 28px',
+                border: '1px solid rgba(129, 140, 248, 0.3)',
+                boxShadow: '0 10px 30px rgba(15, 23, 42, 0.3)',
+                marginBottom: '24px',
+                color: '#FFFFFF'
+              }}>
+                {/* Header */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: isMobile ? 'flex-start' : 'center',
+                  justifyContent: 'space-between',
+                  flexDirection: isMobile ? 'column' : 'row',
+                  gap: '12px',
+                  marginBottom: '16px',
+                  borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+                  paddingBottom: '14px'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{
+                      width: '42px',
+                      height: '42px',
+                      borderRadius: '12px',
+                      background: 'linear-gradient(135deg, #6366F1 0%, #A855F7 100%)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: '0 4px 14px rgba(99, 102, 241, 0.5)'
+                    }}>
+                      <Bot size={24} color="#FFFFFF" />
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <h3 style={{ fontSize: isMobile ? '16px' : '18px', fontWeight: '800', margin: 0, color: '#FFFFFF' }}>
+                          Trợ Lý AI Tạo Cuốc Xe Ảo
+                        </h3>
+                        <span style={{
+                          backgroundColor: 'rgba(99, 102, 241, 0.25)',
+                          color: '#C7D2FE',
+                          border: '1px solid rgba(99, 102, 241, 0.4)',
+                          fontSize: '11px',
+                          fontWeight: '700',
+                          padding: '2px 8px',
+                          borderRadius: '6px'
+                        }}>
+                          ⚡ Groq AI Superfast
+                        </span>
+                      </div>
+                      <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#94A3B8' }}>
+                        Nhập lệnh tự nhiên &rarr; AI tự động sinh lộ trình, tính giá cước, kiểm tra tuyến trùng &rarr; Duyệt và đăng lên App
+                      </p>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setShowAiCard(!showAiCard)}
+                      style={{
+                        background: 'rgba(255, 255, 255, 0.08)',
+                        border: '1px solid rgba(255, 255, 255, 0.15)',
+                        color: '#E2E8F0',
+                        borderRadius: '8px',
+                        padding: '6px 12px',
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {showAiCard ? 'Thu gọn' : 'Mở rộng'}
+                    </button>
+                  </div>
+                </div>
+
+                {showAiCard && (
+                  <div>
+                    {/* BƯỚC 1: KHUNG NHẬP LỆNH AI */}
+                    <div style={{ marginBottom: '16px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                        <label style={{ fontSize: '13px', fontWeight: '700', color: '#E0E7FF', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{
+                            backgroundColor: '#6366F1',
+                            color: '#FFFFFF',
+                            width: '20px',
+                            height: '20px',
+                            borderRadius: '50%',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '11px',
+                            fontWeight: '800'
+                          }}>1</span>
+                          <span>Nhập yêu cầu cuốc xe (Prompt tiếng Việt tự nhiên):</span>
+                        </label>
+                        {aiPrompt && (
+                          <button
+                            type="button"
+                            onClick={() => setAiPrompt('')}
+                            style={{ background: 'none', border: 'none', color: '#94A3B8', fontSize: '12px', cursor: 'pointer' }}
+                          >
+                            Xóa trắng
+                          </button>
+                        )}
+                      </div>
+
+                      <div style={{ position: 'relative' }}>
+                        <textarea
+                          rows={isMobile ? 3 : 2}
+                          value={aiPrompt}
+                          onChange={(e) => setAiPrompt(e.target.value)}
+                          placeholder='Ví dụ: "Tạo 20 cuốc xe từ các thành phố lớn, giá 3–5 triệu, xe 5–7 chỗ." hoặc "Tạo 5 cuốc quanh Thanh Hoá giá 150k - 300k"'
+                          style={{
+                            width: '100%',
+                            boxSizing: 'border-box',
+                            backgroundColor: 'rgba(15, 23, 42, 0.7)',
+                            border: '1px solid rgba(99, 102, 241, 0.4)',
+                            borderRadius: '12px',
+                            padding: '12px 14px',
+                            color: '#FFFFFF',
+                            fontSize: '14px',
+                            lineHeight: '1.5',
+                            outline: 'none',
+                            resize: 'vertical',
+                            fontFamily: 'inherit'
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                              handleGenerateAiTrips();
+                            }
+                          }}
+                        />
+                      </div>
+
+                      {/* Gợi ý lệnh nhanh (Quick prompt pills) */}
+                      <div style={{ marginTop: '10px' }}>
+                        <div style={{ fontSize: '11px', color: '#94A3B8', fontWeight: '600', marginBottom: '6px' }}>
+                          💡 Gợi ý lệnh nhanh mẫu (Click để chọn ngay):
+                        </div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                          {[
+                            'Tạo 20 cuốc xe từ các thành phố lớn, giá 3–5 triệu, xe 5–7 chỗ.',
+                            'Tạo 10 cuốc xe liên tỉnh Hà Nội - Ninh Bình - Thanh Hoá - Hải Phòng, giá 800k - 2 triệu.',
+                            'Tạo 6 cuốc xe quanh TP. Thanh Hoá (Vinhomes, FLC Sầm Sơn, Hải Tiến), giá 150k - 400k.',
+                            'Tạo 8 cuốc xe đêm lái xe hộ sau tiệc tùng nhà hàng, giá 250k - 500k.',
+                            'Tạo 5 cuốc xe đón tiễn sân bay Nội Bài & Thọ Xuân sáng sớm, giá 350k - 700k.'
+                          ].map((item, idx) => (
+                            <button
+                              key={idx}
+                              type="button"
+                              onClick={() => {
+                                setAiPrompt(item);
+                                handleGenerateAiTrips(item);
+                              }}
+                              disabled={aiLoading}
+                              style={{
+                                backgroundColor: 'rgba(255, 255, 255, 0.06)',
+                                border: '1px solid rgba(255, 255, 255, 0.12)',
+                                color: '#CBD5E1',
+                                borderRadius: '20px',
+                                padding: '5px 12px',
+                                fontSize: '11px',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                                textAlign: 'left'
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.backgroundColor = 'rgba(99, 102, 241, 0.25)';
+                                e.currentTarget.style.borderColor = '#818CF8';
+                                e.currentTarget.style.color = '#FFFFFF';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.06)';
+                                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.12)';
+                                e.currentTarget.style.color = '#CBD5E1';
+                              }}
+                            >
+                              ⚡ {item}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Nút Kích hoạt AI */}
+                      <div style={{ marginTop: '14px', display: 'flex', gap: '10px', alignItems: 'center' }}>
+                        <button
+                          type="button"
+                          onClick={() => handleGenerateAiTrips()}
+                          disabled={aiLoading || !aiPrompt.trim()}
+                          style={{
+                            background: aiLoading || !aiPrompt.trim()
+                              ? '#475569'
+                              : 'linear-gradient(135deg, #6366F1 0%, #A855F7 100%)',
+                            color: '#FFFFFF',
+                            border: 'none',
+                            borderRadius: '12px',
+                            padding: '12px 22px',
+                            fontSize: '13px',
+                            fontWeight: '800',
+                            cursor: aiLoading || !aiPrompt.trim() ? 'not-allowed' : 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            boxShadow: '0 4px 14px rgba(99, 102, 241, 0.4)',
+                            transition: 'all 0.2s'
+                          }}
+                        >
+                          <Sparkles size={16} className={aiLoading ? 'animate-spin' : ''} />
+                          <span>{aiLoading ? 'AI đang sinh & kiểm tra cuốc xe...' : 'AI TẠO & KIỂM TRA CUỐC XE'}</span>
+                        </button>
+                        <span style={{ fontSize: '11px', color: '#64748B' }}>
+                          (Phím tắt: Ctrl + Enter để tạo)
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* BƯỚC 2 & 3: BẢNG DUYỆT & XÁC NHẬN ĐĂNG (PREVIEW & APPROVE) */}
+                    {aiPreviewTrips.length > 0 && (
+                      <div style={{
+                        marginTop: '20px',
+                        backgroundColor: 'rgba(15, 23, 42, 0.85)',
+                        border: '1px solid rgba(99, 102, 241, 0.35)',
+                        borderRadius: '16px',
+                        padding: isMobile ? '14px' : '20px'
+                      }}>
+                        {/* Thanh tiêu đề & thống kê */}
+                        <div style={{
+                          display: 'flex',
+                          alignItems: isMobile ? 'flex-start' : 'center',
+                          justifyContent: 'space-between',
+                          flexDirection: isMobile ? 'column' : 'row',
+                          gap: '12px',
+                          marginBottom: '16px',
+                          paddingBottom: '12px',
+                          borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
+                        }}>
+                          <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span style={{
+                                backgroundColor: '#22C55E',
+                                color: '#FFFFFF',
+                                width: '20px',
+                                height: '20px',
+                                borderRadius: '50%',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '11px',
+                                fontWeight: '800'
+                              }}>2</span>
+                              <h4 style={{ margin: 0, fontSize: '15px', fontWeight: '800', color: '#F8FAFC' }}>
+                                Kết Quả AI Tạo & Kiểm Tra Cuốc Xe
+                              </h4>
+                            </div>
+                            <div style={{ fontSize: '12px', color: '#94A3B8', marginTop: '4px', display: 'flex', gap: '14px', flexWrap: 'wrap' }}>
+                              <span>✅ Số cuốc hợp lệ: <strong style={{ color: '#FBBF24' }}>{aiPreviewTrips.length} cuốc</strong></span>
+                              <span>💰 Tổng cước: <strong style={{ color: '#34D399' }}>{aiPreviewTrips.reduce((s, t) => s + (Number(t.price) || 0), 0).toLocaleString('vi-VN')}đ</strong></span>
+                              <span>Đã chọn: <strong style={{ color: '#60A5FA' }}>{selectedPreviewIds.size}/{aiPreviewTrips.length}</strong></span>
+                            </div>
+                          </div>
+
+                          {/* Nút Duyệt đăng (Bước 3) */}
+                          <div style={{ display: 'flex', gap: '8px', width: isMobile ? '100%' : 'auto' }}>
+                            <button
+                              type="button"
+                              onClick={handleCancelAiPreview}
+                              disabled={aiPublishing}
+                              style={{
+                                flex: isMobile ? 1 : 'none',
+                                backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                                border: '1px solid rgba(255, 255, 255, 0.15)',
+                                color: '#CBD5E1',
+                                borderRadius: '10px',
+                                padding: '9px 14px',
+                                fontSize: '13px',
+                                fontWeight: '600',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              Hủy bỏ
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handlePublishAiTrips}
+                              disabled={aiPublishing || selectedPreviewIds.size === 0}
+                              style={{
+                                flex: isMobile ? 2 : 'none',
+                                background: selectedPreviewIds.size === 0 || aiPublishing
+                                  ? '#475569'
+                                  : 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                                color: '#FFFFFF',
+                                border: 'none',
+                                borderRadius: '10px',
+                                padding: '9px 20px',
+                                fontSize: '13px',
+                                fontWeight: '800',
+                                cursor: selectedPreviewIds.size === 0 || aiPublishing ? 'not-allowed' : 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '6px',
+                                boxShadow: '0 4px 14px rgba(16, 185, 129, 0.4)'
+                              }}
+                            >
+                              <CheckCircle2 size={16} />
+                              <span>
+                                {aiPublishing ? 'Đang lưu vào hệ thống...' : `XÁC NHẬN ĐĂNG (${selectedPreviewIds.size} CUỐC)`}
+                              </span>
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Thanh chọn tất cả */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
+                          <button
+                            type="button"
+                            onClick={handleToggleSelectAll}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: '#93C5FD',
+                              fontSize: '12px',
+                              fontWeight: '600',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              padding: 0
+                            }}
+                          >
+                            {selectedPreviewIds.size === aiPreviewTrips.length ? (
+                              <CheckSquare size={16} color="#38BDF8" />
+                            ) : (
+                              <Square size={16} color="#94A3B8" />
+                            )}
+                            <span>{selectedPreviewIds.size === aiPreviewTrips.length ? 'Bỏ chọn tất cả' : 'Chọn tất cả cuốc'}</span>
+                          </button>
+                          <span style={{ fontSize: '11px', color: '#94A3B8' }}>
+                            (Bạn có thể chỉnh sửa trực tiếp giá, điểm đón/trả hoặc xóa bớt trước khi bấm Xác nhận đăng)
+                          </span>
+                        </div>
+
+                        {/* Danh sách cuốc chi tiết */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '480px', overflowY: 'auto', paddingRight: '4px' }}>
+                          {aiPreviewTrips.map((item, idx) => {
+                            const isSelected = selectedPreviewIds.has(item.preview_id);
+                            return (
+                              <div
+                                key={item.preview_id || idx}
+                                style={{
+                                  backgroundColor: isSelected ? 'rgba(30, 41, 59, 0.9)' : 'rgba(15, 23, 42, 0.6)',
+                                  border: isSelected ? '1px solid rgba(99, 102, 241, 0.4)' : '1px solid rgba(255, 255, 255, 0.07)',
+                                  borderRadius: '12px',
+                                  padding: '12px 14px',
+                                  display: 'flex',
+                                  flexDirection: isMobile ? 'column' : 'row',
+                                  alignItems: isMobile ? 'stretch' : 'center',
+                                  justifyContent: 'space-between',
+                                  gap: '12px',
+                                  transition: 'all 0.2s'
+                                }}
+                              >
+                                {/* Checkbox + Nội dung */}
+                                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', flex: 1 }}>
+                                  <input
+                                    type="checkbox"
+                                    checked={isSelected}
+                                    onChange={() => handleToggleSelectTrip(item.preview_id)}
+                                    style={{ marginTop: '4px', cursor: 'pointer', accentColor: '#6366F1', width: '16px', height: '16px' }}
+                                  />
+                                  <div style={{ flex: 1 }}>
+                                    {/* Điểm đón & Điểm trả */}
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        <span style={{ backgroundColor: '#EF4444', color: '#FFF', fontSize: '10px', fontWeight: '800', padding: '1px 5px', borderRadius: '4px' }}>ĐÓN</span>
+                                        <input
+                                          type="text"
+                                          value={item.pickup_location}
+                                          onChange={(e) => handleUpdatePreviewTrip(item.preview_id, 'pickup_location', e.target.value)}
+                                          style={{
+                                            flex: 1,
+                                            backgroundColor: 'rgba(0, 0, 0, 0.3)',
+                                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                                            borderRadius: '6px',
+                                            padding: '4px 8px',
+                                            color: '#FFFFFF',
+                                            fontSize: '13px',
+                                            outline: 'none'
+                                          }}
+                                        />
+                                      </div>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        <span style={{ backgroundColor: '#22C55E', color: '#FFF', fontSize: '10px', fontWeight: '800', padding: '1px 5px', borderRadius: '4px' }}>TRẢ</span>
+                                        <input
+                                          type="text"
+                                          value={item.dropoff_location}
+                                          onChange={(e) => handleUpdatePreviewTrip(item.preview_id, 'dropoff_location', e.target.value)}
+                                          style={{
+                                            flex: 1,
+                                            backgroundColor: 'rgba(0, 0, 0, 0.3)',
+                                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                                            borderRadius: '6px',
+                                            padding: '4px 8px',
+                                            color: '#FFFFFF',
+                                            fontSize: '13px',
+                                            outline: 'none'
+                                          }}
+                                        />
+                                      </div>
+                                    </div>
+
+                                    {/* Thẻ tags & Thông tin */}
+                                    <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                      <span style={{ fontSize: '11px', color: '#94A3B8' }}>
+                                        📍 {item.distance_km} km &bull; ⏱️ ~{item.estimated_minutes} phút &bull; 👤 {item.customer_name} ({item.customer_phone})
+                                      </span>
+                                      {item.service_tags?.map((tag, tIdx) => (
+                                        <span key={tIdx} style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)', color: '#CBD5E1', fontSize: '10px', padding: '1px 6px', borderRadius: '4px' }}>
+                                          {tag}
+                                        </span>
+                                      ))}
+                                    </div>
+                                    {item.notes && (
+                                      <div style={{ fontSize: '11px', color: '#A5B4FC', marginTop: '3px', fontStyle: 'italic' }}>
+                                        📝 Ghi chú: {item.notes}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* Giá cước & Nút xóa */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', justifyContent: 'flex-end' }}>
+                                  <div style={{ textAlign: 'right' }}>
+                                    <div style={{ fontSize: '11px', color: '#94A3B8', marginBottom: '2px' }}>Giá cước (VNĐ)</div>
+                                    <input
+                                      type="number"
+                                      value={item.price}
+                                      onChange={(e) => handleUpdatePreviewTrip(item.preview_id, 'price', Number(e.target.value))}
+                                      step={10000}
+                                      style={{
+                                        width: '120px',
+                                        backgroundColor: 'rgba(0, 0, 0, 0.4)',
+                                        border: '1px solid rgba(52, 211, 153, 0.4)',
+                                        borderRadius: '8px',
+                                        padding: '6px 10px',
+                                        color: '#34D399',
+                                        fontWeight: '800',
+                                        fontSize: '14px',
+                                        textAlign: 'right',
+                                        outline: 'none'
+                                      }}
+                                    />
+                                  </div>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeletePreviewTrip(item.preview_id)}
+                                    title="Xóa cuốc này khỏi danh sách xem trước"
+                                    style={{
+                                      backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                                      border: '1px solid rgba(239, 68, 68, 0.3)',
+                                      color: '#F87171',
+                                      borderRadius: '8px',
+                                      padding: '8px',
+                                      cursor: 'pointer',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center'
+                                    }}
+                                  >
+                                    <Trash2 size={15} />
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
               {/* Form Thêm cuốc xe thật & cuốc ảo */}
               <div style={{ backgroundColor: '#FFFFFF', borderRadius: '16px', padding: isMobile ? '16px 14px' : '24px', border: '1px solid #E5E7EB', marginBottom: '24px' }}>
                 <div style={{

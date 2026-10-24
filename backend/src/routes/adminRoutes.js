@@ -40,4 +40,8 @@ router.delete('/trips/:id', adminController.deleteTrip);
 // 10. Đổi mật khẩu Quản trị viên
 router.post('/change-password', adminController.changeAdminPassword);
 
+// 11. Trợ lý AI Groq tạo & duyệt cuốc ảo
+router.post('/ai/generate-trips', adminController.generateAiTrips);
+router.post('/ai/publish-trips', adminController.publishAiTrips);
+
 module.exports = router;

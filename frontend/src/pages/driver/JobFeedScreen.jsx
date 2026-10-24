@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   ArrowLeft, Bell, Wallet, Car, Star, MapPin, Navigation, 
-  Clock, ChevronRight, CheckCircle2, AlertCircle, RefreshCw, X
+  Clock, ChevronRight, ChevronDown, CheckCircle2, AlertCircle, RefreshCw, X, Search, Check
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { useDriver } from '../../context/DriverContext';
+import { VIETNAM_PROVINCES, POPULAR_PROVINCES, checkTripMatchesProvince } from '../../utils/provinceUtils';
 
 export default function JobFeedScreen({ driverId: propDriverId, onNavigate }) {
   const { 
@@ -28,6 +29,53 @@ export default function JobFeedScreen({ driverId: propDriverId, onNavigate }) {
   const [loading, setLoading] = useState(true);
   const [selectedJob, setSelectedJob] = useState(null);
   const [actionMsg, setActionMsg] = useState('');
+
+  // 📍 Bộ lọc Tỉnh/Thành phố bạn đang ở (64 Tỉnh Thành)
+  const [selectedProvince, setSelectedProvince] = useState(() => {
+    try {
+      return localStorage.getItem('selected_driver_province') || 'all';
+    } catch {
+      return 'all';
+    }
+  });
+  const [showProvinceModal, setShowProvinceModal] = useState(false);
+  const [provinceSearch, setProvinceSearch] = useState('');
+
+  const handleSelectProvince = (prov) => {
+    setSelectedProvince(prov);
+    try {
+      localStorage.setItem('selected_driver_province', prov);
+    } catch (e) {
+      console.warn(e);
+    }
+    setShowProvinceModal(false);
+    setProvinceSearch('');
+  };
+
+  const filteredTrips = useMemo(() => {
+    return trips.filter(t => {
+      if (!selectedProvince || selectedProvince === 'all') return true;
+      return checkTripMatchesProvince(t, selectedProvince);
+    });
+  }, [trips, selectedProvince]);
+
+  const filteredProvincesList = useMemo(() => {
+    if (!provinceSearch.trim()) return VIETNAM_PROVINCES;
+    const q = provinceSearch.toLowerCase().trim();
+    return VIETNAM_PROVINCES.filter(p => p.toLowerCase().includes(q));
+  }, [provinceSearch]);
+
+  const provinceTripCounts = useMemo(() => {
+    const counts = {};
+    for (const t of trips) {
+      for (const p of VIETNAM_PROVINCES) {
+        if (checkTripMatchesProvince(t, p)) {
+          counts[p] = (counts[p] || 0) + 1;
+        }
+      }
+    }
+    return counts;
+  }, [trips]);
 
   const fetchTrips = async () => {
     try {
@@ -187,6 +235,106 @@ export default function JobFeedScreen({ driverId: propDriverId, onNavigate }) {
 
       <div style={{ padding: '16px 14px', marginTop: '-12px' }}>
         
+        {/* 📍 Ô CHỌN TỈNH/THÀNH BẠN ĐANG Ở (THEO MOCKUP SCREENSHOT) */}
+        <div 
+          onClick={() => setShowProvinceModal(true)}
+          style={{
+            backgroundColor: '#FFFFFF',
+            borderRadius: '16px',
+            padding: '12px 14px',
+            boxShadow: '0 2px 10px rgba(0,0,0,0.06)',
+            marginBottom: '14px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            cursor: 'pointer',
+            border: selectedProvince !== 'all' ? '1.5px solid #D32F2F' : '1px solid #E5E7EB',
+            transition: 'all 0.15s ease'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
+            {/* Red Circle MapPin Icon */}
+            <div style={{
+              width: '38px',
+              height: '38px',
+              borderRadius: '50%',
+              backgroundColor: '#FEE2E2',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0
+            }}>
+              <MapPin size={22} color="#D32F2F" />
+            </div>
+
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: '11px', color: '#6B7280', fontWeight: '500' }}>
+                Tỉnh/thành bạn đang ở
+              </div>
+              <div style={{
+                fontSize: '14px',
+                fontWeight: '700',
+                color: selectedProvince === 'all' ? '#4B5563' : '#D32F2F',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                marginTop: '1px'
+              }}>
+                {selectedProvince === 'all' ? (
+                  <>
+                    <Search size={14} color="#9CA3AF" />
+                    <span>Chọn tỉnh/thành phố</span>
+                  </>
+                ) : (
+                  <>
+                    <span>{selectedProvince}</span>
+                    <span style={{
+                      backgroundColor: '#FEE2E2',
+                      color: '#D32F2F',
+                      fontSize: '10px',
+                      fontWeight: '800',
+                      padding: '1px 6px',
+                      borderRadius: '8px'
+                    }}>
+                      {filteredTrips.length} cuốc
+                    </span>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+            {selectedProvince !== 'all' && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleSelectProvince('all');
+                }}
+                title="Bỏ lọc tỉnh"
+                style={{
+                  background: '#F3F4F6',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '22px',
+                  height: '22px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  color: '#6B7280',
+                  fontSize: '11px',
+                  fontWeight: 'bold'
+                }}
+              >
+                ✕
+              </button>
+            )}
+            <ChevronDown size={20} color="#6B7280" />
+          </div>
+        </div>
+
         {/* 💼 KHỐI THU NHẬP & CHỈ SỐ HÔM NAY (HIỂN THỊ THEO QUYỀN HẠN) */}
         {!isLoggedIn ? (
           <div style={{
@@ -438,7 +586,7 @@ export default function JobFeedScreen({ driverId: propDriverId, onNavigate }) {
             }}
           >
             <Car size={14} />
-            <span>Cuốc mới ({tripCounts?.new_count ?? 0})</span>
+            <span>Cuốc mới ({selectedProvince !== 'all' && activeTab === 'new' ? filteredTrips.length : (tripCounts?.new_count ?? 0)})</span>
           </button>
 
           {/* Tab 2: Đang thực hiện */}
@@ -494,31 +642,93 @@ export default function JobFeedScreen({ driverId: propDriverId, onNavigate }) {
           </button>
         </div>
 
+        {/* 🏷️ BANNER THÔNG BÁO TỈNH ĐANG CHỌN */}
+        {selectedProvince !== 'all' && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            backgroundColor: '#FEF2F2',
+            border: '1px solid #FECACA',
+            borderRadius: '12px',
+            padding: '8px 12px',
+            marginBottom: '14px',
+            fontSize: '12px',
+            color: '#991B1B'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden' }}>
+              <MapPin size={15} color="#DC2626" style={{ flexShrink: 0 }} />
+              <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                Đang hiển thị cuốc tại: <strong>{selectedProvince}</strong> ({filteredTrips.length} cuốc)
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => handleSelectProvince('all')}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#DC2626',
+                fontWeight: '700',
+                cursor: 'pointer',
+                fontSize: '11.5px',
+                flexShrink: 0,
+                textDecoration: 'underline'
+              }}
+            >
+              Xem tất cả
+            </button>
+          </div>
+        )}
+
         {/* 🚗 JOB FEED DANH SÁCH CUỐC XE */}
         {loading ? (
           <div style={{ textAlign: 'center', padding: '40px 0', color: '#9CA3AF' }}>
             <RefreshCw size={24} className="animate-spin" style={{ margin: '0 auto 8px auto', color: '#D32F2F' }} />
             <div>Đang cập nhật cuốc xe mới nhất...</div>
           </div>
-        ) : trips.length === 0 ? (
+        ) : filteredTrips.length === 0 ? (
           <div style={{
             backgroundColor: '#FFFFFF',
             borderRadius: '20px',
-            padding: '40px 20px',
+            padding: '36px 20px',
             textAlign: 'center',
             color: '#6B7280'
           }}>
             <Car size={36} color="#D1D5DB" style={{ margin: '0 auto 10px auto' }} />
             <div style={{ fontWeight: '700', fontSize: '15px', color: '#374151' }}>
-              Hiện chưa có cuốc xe nào trong mục này
+              {selectedProvince !== 'all' 
+                ? `Chưa có cuốc xe nào tại ${selectedProvince}` 
+                : 'Hiện chưa có cuốc xe nào trong mục này'}
             </div>
-            <div style={{ fontSize: '12px', color: '#9CA3AF', marginTop: '4px' }}>
-              Vào trang Admin để tạo thêm cuốc xe hoặc kích hoạt chế độ tự động sinh cuốc ảo!
+            <div style={{ fontSize: '12px', color: '#9CA3AF', marginTop: '6px', maxWidth: '320px', margin: '6px auto 14px auto' }}>
+              {selectedProvince !== 'all'
+                ? `Bạn có thể bấm "Xem tất cả khu vực" (${trips.length} cuốc) hoặc sang trang Admin để tạo thêm cuốc xe ảo cho ${selectedProvince}!`
+                : 'Vào trang Admin để tạo thêm cuốc xe hoặc kích hoạt chế độ tự động sinh cuốc ảo!'}
             </div>
+            {selectedProvince !== 'all' && (
+              <button
+                type="button"
+                onClick={() => handleSelectProvince('all')}
+                style={{
+                  backgroundColor: '#D32F2F',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: '12px',
+                  padding: '9px 18px',
+                  fontSize: '12.5px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 8px rgba(211,47,47,0.25)'
+                }}
+              >
+                Xem tất cả khu vực ({trips.length} cuốc)
+              </button>
+            )}
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            {trips.map((trip) => {
+            {filteredTrips.map((trip) => {
               const tags = Array.isArray(trip.service_tags) 
                 ? trip.service_tags 
                 : JSON.parse(trip.service_tags || '["Lái xe hộ"]');
@@ -850,6 +1060,258 @@ export default function JobFeedScreen({ driverId: propDriverId, onNavigate }) {
                         : 'Nhận cuốc xe này'}
               </button>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* 🏙️ POPUP MODAL CHỌN 64 TỈNH / THÀNH PHỐ */}
+      {showProvinceModal && (
+        <div 
+          onClick={() => setShowProvinceModal(false)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.55)',
+            backdropFilter: 'blur(3px)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'flex-end',
+            justifyContent: 'center'
+          }}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              backgroundColor: '#FFFFFF',
+              width: '100%',
+              maxWidth: '480px',
+              borderTopLeftRadius: '24px',
+              borderTopRightRadius: '24px',
+              maxHeight: '84vh',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 -10px 25px rgba(0,0,0,0.15)',
+              overflow: 'hidden'
+            }}
+          >
+            {/* Thanh kéo nhỏ phía trên */}
+            <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '10px', paddingBottom: '4px' }}>
+              <div style={{ width: '40px', height: '4px', backgroundColor: '#E5E7EB', borderRadius: '2px' }} />
+            </div>
+
+            {/* Header Modal */}
+            <div style={{
+              padding: '12px 18px 14px 18px',
+              borderBottom: '1px solid #F3F4F6',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}>
+              <div>
+                <div style={{ fontSize: '16px', fontWeight: '800', color: '#111827', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <MapPin size={18} color="#D32F2F" />
+                  <span>Chọn Tỉnh / Thành phố</span>
+                </div>
+                <div style={{ fontSize: '11.5px', color: '#6B7280', marginTop: '2px' }}>
+                  Lọc các chuyến xe theo địa bàn bạn hoạt động
+                </div>
+              </div>
+              <button 
+                type="button"
+                onClick={() => setShowProvinceModal(false)}
+                style={{
+                  background: '#F3F4F6',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  color: '#4B5563'
+                }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Ô tìm kiếm nhanh */}
+            <div style={{ padding: '12px 18px 8px 18px' }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                backgroundColor: '#F9FAFB',
+                border: '1.5px solid #E5E7EB',
+                borderRadius: '12px',
+                padding: '8px 12px',
+                gap: '8px'
+              }}>
+                <Search size={16} color="#9CA3AF" />
+                <input
+                  type="text"
+                  value={provinceSearch}
+                  onChange={(e) => setProvinceSearch(e.target.value)}
+                  placeholder="Tìm kiếm tỉnh thành... (VD: Đà Nẵng, Hà Nội...)"
+                  style={{
+                    border: 'none',
+                    background: 'transparent',
+                    outline: 'none',
+                    fontSize: '13px',
+                    width: '100%',
+                    color: '#111827'
+                  }}
+                  autoFocus
+                />
+                {provinceSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setProvinceSearch('')}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9CA3AF', padding: 0 }}
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Khu vực phổ biến (Pills) */}
+            <div style={{ padding: '6px 18px 12px 18px', borderBottom: '1px solid #F3F4F6' }}>
+              <div style={{ fontSize: '11px', fontWeight: '700', color: '#6B7280', textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '0.3px' }}>
+                Khu vực tiêu biểu
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                {/* Tất cả */}
+                <button
+                  type="button"
+                  onClick={() => handleSelectProvince('all')}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: '20px',
+                    fontSize: '12px',
+                    fontWeight: selectedProvince === 'all' ? '700' : '500',
+                    border: selectedProvince === 'all' ? '1.5px solid #D32F2F' : '1px solid #E5E7EB',
+                    backgroundColor: selectedProvince === 'all' ? '#FEE2E2' : '#FFFFFF',
+                    color: selectedProvince === 'all' ? '#D32F2F' : '#374151',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <span>🌟 Tất cả</span>
+                  <span style={{ fontSize: '10px', opacity: 0.8 }}>({trips.length})</span>
+                </button>
+
+                {POPULAR_PROVINCES.map((p) => {
+                  const count = provinceTripCounts[p] || 0;
+                  const isSelected = selectedProvince === p;
+                  return (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => handleSelectProvince(p)}
+                      style={{
+                        padding: '6px 12px',
+                        borderRadius: '20px',
+                        fontSize: '12px',
+                        fontWeight: isSelected ? '700' : '500',
+                        border: isSelected ? '1.5px solid #D32F2F' : '1px solid #E5E7EB',
+                        backgroundColor: isSelected ? '#FEE2E2' : '#FFFFFF',
+                        color: isSelected ? '#D32F2F' : '#374151',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      <span>{p}</span>
+                      {count > 0 && (
+                        <span style={{
+                          fontSize: '10px',
+                          fontWeight: '700',
+                          backgroundColor: isSelected ? '#D32F2F' : '#F3F4F6',
+                          color: isSelected ? '#FFFFFF' : '#6B7280',
+                          borderRadius: '8px',
+                          padding: '1px 5px'
+                        }}>
+                          {count}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Danh sách cuộn toàn bộ 64 tỉnh thành */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '6px 14px 20px 14px' }}>
+              <div style={{ fontSize: '11px', fontWeight: '700', color: '#9CA3AF', textTransform: 'uppercase', margin: '8px 6px', letterSpacing: '0.3px' }}>
+                Danh sách 64 Tỉnh / Thành ({filteredProvincesList.length})
+              </div>
+
+              {filteredProvincesList.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '30px 10px', color: '#9CA3AF', fontSize: '13px' }}>
+                  Không tìm thấy tỉnh thành nào phù hợp với "{provinceSearch}"
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  {filteredProvincesList.map((prov) => {
+                    const isSelected = selectedProvince === prov;
+                    const count = provinceTripCounts[prov] || 0;
+
+                    return (
+                      <div
+                        key={prov}
+                        onClick={() => handleSelectProvince(prov)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '11px 14px',
+                          borderRadius: '12px',
+                          cursor: 'pointer',
+                          backgroundColor: isSelected ? '#FEF2F2' : 'transparent',
+                          transition: 'background-color 0.12s ease'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <MapPin size={16} color={isSelected ? '#D32F2F' : '#9CA3AF'} />
+                          <span style={{
+                            fontSize: '13.5px',
+                            fontWeight: isSelected ? '700' : '500',
+                            color: isSelected ? '#D32F2F' : '#1F2937'
+                          }}>
+                            {prov}
+                          </span>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          {count > 0 && (
+                            <span style={{
+                              backgroundColor: isSelected ? '#D32F2F' : '#F3F4F6',
+                              color: isSelected ? '#FFFFFF' : '#4B5563',
+                              fontSize: '11px',
+                              fontWeight: '700',
+                              padding: '2px 8px',
+                              borderRadius: '10px'
+                            }}>
+                              {count} cuốc
+                            </span>
+                          )}
+                          {isSelected && <Check size={16} color="#D32F2F" />}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

@@ -195,7 +195,12 @@ function sanitizeAndValidateTrips(rawTrips, targetProvince = '') {
 /**
  * Hàm chính: Tạo danh sách cuốc xe ảo từ Prompt của Admin (có phân chia theo Tỉnh/Thành phố)
  */
-async function generateVirtualTrips(userPrompt, options = {}) {
+async function generateVirtualTrips(userPrompt = '', options = {}) {
+  if (typeof userPrompt === 'object' && userPrompt !== null && Object.keys(options).length === 0) {
+    options = userPrompt;
+    userPrompt = options.prompt || '';
+  }
+  userPrompt = typeof userPrompt === 'string' ? userPrompt : '';
   const { province = 'Đà Nẵng', scope = 'intra_province', count = 5 } = options;
 
   let promptText = '';

@@ -74,22 +74,54 @@ export const PROVINCE_CONFIGS = [
   }
 ];
 
+export const VIETNAM_PROVINCES = [
+  'An Giang', 'Bà Rịa - Vũng Tàu', 'Bắc Giang', 'Bắc Kạn', 'Bạc Liêu', 'Bắc Ninh', 
+  'Bến Tre', 'Bình Định', 'Bình Dương', 'Bình Phước', 'Bình Thuận', 'Cà Mau', 
+  'Cần Thơ', 'Cao Bằng', 'Đà Nẵng', 'Đắk Lắk', 'Đắk Nông', 'Điện Biên', 
+  'Đồng Nai', 'Đồng Tháp', 'Gia Lai', 'Hà Giang', 'Hà Nam', 'Hà Nội', 'Hà Tây', 
+  'Hà Tĩnh', 'Hải Dương', 'Hải Phòng', 'Hậu Giang', 'Hòa Bình', 'Hưng Yên', 
+  'Khánh Hòa', 'Kiên Giang', 'Kon Tum', 'Lai Châu', 'Lâm Đồng', 'Lạng Sơn', 
+  'Lào Cai', 'Long An', 'Nam Định', 'Nghệ An', 'Ninh Bình', 'Ninh Thuận', 
+  'Phú Thọ', 'Phú Yên', 'Quảng Bình', 'Quảng Nam', 'Quảng Ngãi', 'Quảng Ninh', 
+  'Quảng Trị', 'Sóc Trăng', 'Sơn La', 'Tây Ninh', 'Thái Bình', 'Thái Nguyên', 
+  'Thanh Hóa', 'Thừa Thiên Huế', 'Tiền Giang', 'TP. Hồ Chí Minh', 'Trà Vinh', 
+  'Tuyên Quang', 'Vĩnh Long', 'Vĩnh Phúc', 'Yên Bái'
+];
+
 export function checkTripMatchesProvince(trip, provinceName) {
   if (!trip) return false;
   if (!provinceName || provinceName === 'all') return true;
 
+  const target = provinceName.toLowerCase().trim();
+
+  // 1. Kiểm tra service_tags
   if (Array.isArray(trip.service_tags)) {
     const hasTag = trip.service_tags.some(t => {
       const lower = String(t).toLowerCase();
-      if (lower.includes(provinceName.toLowerCase())) return true;
-      if (provinceName === 'TP. Hồ Chí Minh' && (lower.includes('hcm') || lower.includes('sài gòn') || lower.includes('saigon'))) return true;
+      if (lower.includes(target)) return true;
+      if ((target === 'tp. hồ chí minh' || target === 'hồ chí minh' || target === 'hcm') && 
+          (lower.includes('hcm') || lower.includes('sài gòn') || lower.includes('saigon'))) return true;
       return false;
     });
     if (hasTag) return true;
   }
 
-  const cfg = PROVINCE_CONFIGS.find(p => p.name === provinceName || p.id === provinceName);
-  const keywords = cfg ? cfg.keywords : [provinceName.toLowerCase()];
+  // 2. Tìm config chi tiết nếu có
+  const cfg = PROVINCE_CONFIGS.find(p => p.name.toLowerCase() === target || p.id === target);
+  let keywords = cfg ? [...cfg.keywords] : [target];
+
+  // Rút gọn tên tỉnh để tìm kiếm tự nhiên (ví dụ "Bà Rịa - Vũng Tàu" -> "vũng tàu", "bà rịa")
+  const cleanName = target.replace(/^tp\.\s*/i, '').replace(/^tỉnh\s*/i, '').trim();
+  if (cleanName && !keywords.includes(cleanName)) {
+    keywords.push(cleanName);
+  }
+  if (cleanName.includes('-')) {
+    cleanName.split('-').forEach(part => {
+      const p = part.trim();
+      if (p.length > 3 && !keywords.includes(p)) keywords.push(p);
+    });
+  }
+
   const textToSearch = `${trip.pickup_location || ''} ${trip.dropoff_location || ''} ${(trip.service_tags || []).join(' ')} ${trip.notes || ''}`.toLowerCase();
 
   return keywords.some(kw => textToSearch.includes(kw.toLowerCase()));
@@ -97,7 +129,7 @@ export function checkTripMatchesProvince(trip, provinceName) {
 
 export function checkTripIsOtherProvince(trip) {
   if (!trip) return false;
-  const isKnown = PROVINCE_CONFIGS.some(cfg => checkTripMatchesProvince(trip, cfg.name));
+  const isKnown = VIETNAM_PROVINCES.some(p => checkTripMatchesProvince(trip, p));
   return !isKnown;
 }
 
@@ -2040,78 +2072,113 @@ export default function AdminLayout({ onSwitchToDriverApp }) {
                     <div style={{ marginBottom: '16px' }}>
                       {/* Chọn Tỉnh / Thành phố */}
                       <div style={{ marginBottom: '14px' }}>
-                        <div style={{ fontSize: '12px', fontWeight: '700', color: '#CBD5E1', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <MapPin size={14} color="#818CF8" />
-                          <span>1. Chọn Tỉnh / Thành phố cần sinh cuốc (Dịch vụ Lái xe hộ đưa người & xe về nhà):</span>
+                        <div style={{ fontSize: '13px', fontWeight: '800', color: '#E0E7FF', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <MapPin size={16} color="#818CF8" />
+                          <span>1. Ô chọn Tỉnh / Thành phố (Đầy đủ 64 Tỉnh Thành Việt Nam):</span>
                         </div>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
+
+                        {/* Ô dropdown chọn 64 tỉnh thành */}
+                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '10px' }}>
+                          <div style={{ position: 'relative', minWidth: isMobile ? '100%' : '320px' }}>
+                            <select
+                              value={selectedAiProvince === 'custom' ? '' : selectedAiProvince}
+                              onChange={(e) => {
+                                if (e.target.value) {
+                                  setSelectedAiProvince(e.target.value);
+                                }
+                              }}
+                              style={{
+                                width: '100%',
+                                backgroundColor: '#1E1B4B',
+                                border: '2px solid #818CF8',
+                                borderRadius: '12px',
+                                padding: '10px 14px',
+                                color: '#FFFFFF',
+                                fontSize: '14px',
+                                fontWeight: '700',
+                                outline: 'none',
+                                cursor: 'pointer',
+                                boxShadow: '0 2px 10px rgba(99, 102, 241, 0.3)'
+                              }}
+                            >
+                              <option value="" disabled>-- 📍 Bấm vào đây để chọn trong 64 tỉnh thành --</option>
+                              {VIETNAM_PROVINCES.map(prov => (
+                                <option key={prov} value={prov} style={{ backgroundColor: '#0F172A', color: '#FFFFFF', padding: '6px' }}>
+                                  📍 {prov}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div style={{ fontSize: '12px', color: '#A5B4FC', fontWeight: '600' }}>
+                            Đang chọn: <span style={{ color: '#FCD34D', fontWeight: '800', textDecoration: 'underline' }}>{selectedAiProvince === 'custom' ? (customAiProvince || 'Chưa nhập') : selectedAiProvince}</span>
+                          </div>
+                        </div>
+
+                        {/* Hàng nút chọn nhanh các tỉnh thành lớn */}
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
+                          <span style={{ fontSize: '11px', color: '#94A3B8', fontWeight: '600', marginRight: '4px' }}>Chọn nhanh:</span>
                           {[
-                            { name: 'Đà Nẵng', label: '📍 Đà Nẵng' },
-                            { name: 'TP. Hồ Chí Minh', label: '📍 TP. Hồ Chí Minh' },
-                            { name: 'Hà Nội', label: '📍 Hà Nội' },
-                            { name: 'Thanh Hóa', label: '📍 Thanh Hóa' }
-                          ].map(prov => {
-                            const isSelected = selectedAiProvince === prov.name;
+                            'Đà Nẵng', 'TP. Hồ Chí Minh', 'Hà Nội', 'Thanh Hóa', 'Hải Phòng', 'Cần Thơ', 'Bình Dương'
+                          ].map(provName => {
+                            const isSelected = selectedAiProvince === provName;
                             return (
                               <button
-                                key={prov.name}
+                                key={provName}
                                 type="button"
-                                onClick={() => setSelectedAiProvince(prov.name)}
+                                onClick={() => setSelectedAiProvince(provName)}
                                 style={{
-                                  backgroundColor: isSelected ? '#6366F1' : 'rgba(255, 255, 255, 0.07)',
+                                  backgroundColor: isSelected ? '#6366F1' : 'rgba(255, 255, 255, 0.08)',
                                   color: isSelected ? '#FFFFFF' : '#CBD5E1',
-                                  border: isSelected ? '1px solid #818CF8' : '1px solid rgba(255, 255, 255, 0.15)',
-                                  borderRadius: '20px',
-                                  padding: '7px 16px',
-                                  fontSize: '12px',
+                                  border: isSelected ? '1px solid #818CF8' : '1px solid rgba(255, 255, 255, 0.12)',
+                                  borderRadius: '16px',
+                                  padding: '5px 12px',
+                                  fontSize: '11px',
                                   fontWeight: isSelected ? '800' : '600',
                                   cursor: 'pointer',
-                                  transition: 'all 0.15s',
-                                  boxShadow: isSelected ? '0 2px 10px rgba(99, 102, 241, 0.45)' : 'none'
+                                  transition: 'all 0.15s'
                                 }}
                               >
-                                {prov.label}
+                                {provName}
                               </button>
                             );
                           })}
 
-                          {/* Tùy chọn tỉnh khác */}
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <button
-                              type="button"
-                              onClick={() => setSelectedAiProvince('custom')}
+                          {/* Nhập tay nếu cần */}
+                          <button
+                            type="button"
+                            onClick={() => setSelectedAiProvince('custom')}
+                            style={{
+                              backgroundColor: selectedAiProvince === 'custom' ? '#6366F1' : 'rgba(255, 255, 255, 0.08)',
+                              color: selectedAiProvince === 'custom' ? '#FFFFFF' : '#CBD5E1',
+                              border: selectedAiProvince === 'custom' ? '1px solid #818CF8' : '1px solid rgba(255, 255, 255, 0.12)',
+                              borderRadius: '16px',
+                              padding: '5px 12px',
+                              fontSize: '11px',
+                              fontWeight: selectedAiProvince === 'custom' ? '800' : '600',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            ✏️ Tự gõ tên...
+                          </button>
+                          {selectedAiProvince === 'custom' && (
+                            <input
+                              type="text"
+                              value={customAiProvince}
+                              onChange={(e) => setCustomAiProvince(e.target.value)}
+                              placeholder="Nhập tên tỉnh..."
                               style={{
-                                backgroundColor: selectedAiProvince === 'custom' ? '#6366F1' : 'rgba(255, 255, 255, 0.07)',
-                                color: selectedAiProvince === 'custom' ? '#FFFFFF' : '#CBD5E1',
-                                border: selectedAiProvince === 'custom' ? '1px solid #818CF8' : '1px solid rgba(255, 255, 255, 0.15)',
-                                borderRadius: '20px',
-                                padding: '7px 14px',
-                                fontSize: '12px',
-                                fontWeight: selectedAiProvince === 'custom' ? '800' : '600',
-                                cursor: 'pointer'
+                                backgroundColor: 'rgba(15, 23, 42, 0.8)',
+                                border: '1px solid #818CF8',
+                                borderRadius: '12px',
+                                padding: '5px 10px',
+                                color: '#FFFFFF',
+                                fontSize: '11px',
+                                outline: 'none',
+                                width: '130px'
                               }}
-                            >
-                              ✏️ Tỉnh khác...
-                            </button>
-                            {selectedAiProvince === 'custom' && (
-                              <input
-                                type="text"
-                                value={customAiProvince}
-                                onChange={(e) => setCustomAiProvince(e.target.value)}
-                                placeholder="Nhập tên tỉnh/thành..."
-                                style={{
-                                  backgroundColor: 'rgba(15, 23, 42, 0.8)',
-                                  border: '1px solid #818CF8',
-                                  borderRadius: '16px',
-                                  padding: '6px 12px',
-                                  color: '#FFFFFF',
-                                  fontSize: '12px',
-                                  outline: 'none',
-                                  width: '160px'
-                                }}
-                              />
-                            )}
-                          </div>
+                            />
+                          )}
                         </div>
                       </div>
 
@@ -2819,20 +2886,50 @@ export default function AdminLayout({ onSwitchToDriverApp }) {
                     padding: '8px 12px',
                     backgroundColor: '#F8FAFC',
                     borderRadius: '12px',
-                    border: '1px solid #E2E8F0'
+                    border: '1px solid #E2E8F0',
+                    flexWrap: isMobile ? 'nowrap' : 'wrap'
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', fontWeight: '800', color: '#1E293B', whiteSpace: 'nowrap' }}>
                       <MapPin size={15} color="#4F46E5" />
                       <span>Khu vực / Tỉnh thành:</span>
                     </div>
 
+                    {/* Dropdown 64 tỉnh thành cho bảng danh sách */}
+                    <select
+                      value={VIETNAM_PROVINCES.includes(tripProvinceFilter) ? tripProvinceFilter : (tripProvinceFilter === 'all' ? 'all' : '')}
+                      onChange={(e) => {
+                        setTripProvinceFilter(e.target.value);
+                        setTripPage(1);
+                      }}
+                      style={{
+                        padding: '6px 12px',
+                        borderRadius: '16px',
+                        border: '1px solid #818CF8',
+                        backgroundColor: '#EEF2FF',
+                        color: '#3730A3',
+                        fontSize: '12px',
+                        fontWeight: '700',
+                        cursor: 'pointer',
+                        outline: 'none'
+                      }}
+                    >
+                      <option value="all">🌟 Tất cả 64 Tỉnh Thành ({trips.length} cuốc)</option>
+                      {VIETNAM_PROVINCES.map(prov => {
+                        const count = trips.filter(t => checkTripMatchesProvince(t, prov)).length;
+                        return (
+                          <option key={prov} value={prov}>
+                            📍 {prov} ({count} cuốc)
+                          </option>
+                        );
+                      })}
+                    </select>
+
                     {[
-                      { key: 'all', label: 'Tất cả tỉnh thành', count: trips.length },
+                      { key: 'all', label: 'Tất cả', count: trips.length },
                       { key: 'Đà Nẵng', label: 'Đà Nẵng', count: trips.filter(t => checkTripMatchesProvince(t, 'Đà Nẵng')).length },
                       { key: 'TP. Hồ Chí Minh', label: 'TP. Hồ Chí Minh', count: trips.filter(t => checkTripMatchesProvince(t, 'TP. Hồ Chí Minh')).length },
                       { key: 'Hà Nội', label: 'Hà Nội', count: trips.filter(t => checkTripMatchesProvince(t, 'Hà Nội')).length },
-                      { key: 'Thanh Hóa', label: 'Thanh Hóa', count: trips.filter(t => checkTripMatchesProvince(t, 'Thanh Hóa')).length },
-                      { key: 'other', label: 'Tỉnh khác', count: trips.filter(t => checkTripIsOtherProvince(t)).length }
+                      { key: 'Thanh Hóa', label: 'Thanh Hóa', count: trips.filter(t => checkTripMatchesProvince(t, 'Thanh Hóa')).length }
                     ].map(provTab => {
                       const isSelected = tripProvinceFilter === provTab.key;
                       return (

@@ -11,6 +11,96 @@ import { api } from '../services/api';
 import { useDriver } from '../context/DriverContext';
 import AdminLoginScreen from '../pages/admin/AdminLoginScreen';
 
+export const PROVINCE_CONFIGS = [
+  {
+    id: 'da_nang',
+    name: 'Đà Nẵng',
+    shortName: 'Đà Nẵng',
+    keywords: [
+      'đà nẵng', 'da nang', 'hải châu', 'sơn trà', 'ngũ hành sơn', 
+      'thanh khê', 'liên chiểu', 'cẩm lệ', 'hòa vang', 'bà nà', 
+      'mỹ khê', 'cầu rồng', 'bạch đằng', 'sân bay đà nẵng'
+    ],
+    defaultPrompts: [
+      'Tạo 5 cuốc lái xe hộ tại Đà Nẵng (Hải Châu, Sơn Trà về Cẩm Lệ, Liên Chiểu), giá 150k - 300k',
+      'Tạo 8 cuốc tiệc nhậu đêm đón dọc đường Bạch Đằng, 2/9, Võ Nguyên Giáp về nhà riêng tại Đà Nẵng',
+      'Tạo 4 cuốc lái xe hộ từ Đà Nẵng đi Hội An / Điện Bàn (Quảng Nam), giá 350k - 550k'
+    ]
+  },
+  {
+    id: 'hcm',
+    name: 'TP. Hồ Chí Minh',
+    shortName: 'TP.HCM',
+    keywords: [
+      'hồ chí minh', 'hcm', 'sài gòn', 'saigon', 'quận 1', 'quận 2', 'quận 3', 'quận 4', 
+      'quận 5', 'quận 6', 'quận 7', 'quận 8', 'quận 9', 'quận 10', 'quận 11', 'quận 12', 
+      'bình thạnh', 'thủ đức', 'gò vấp', 'phú nhuận', 'tân bình', 'tân phú', 'bình tân', 
+      'nhà bè', 'hóc môn', 'củ chi', 'bình chánh', 'tân sơn nhất', 'bến thành', 'thảo điền'
+    ],
+    defaultPrompts: [
+      'Tạo 5 cuốc lái xe hộ nội thành TP.HCM: Quận 1 đi Quận 12, Quận 3 đi Gò Vấp, giá 200k - 380k',
+      'Tạo 8 cuốc đón khách nhậu từ Phố Bùi Viện, Thảo Điền, Landmark 81 về Quận 7, Tân Bình, Bình Thạnh',
+      'Tạo 4 cuốc lái xe hộ từ TP.HCM đi TP. Dĩ An / TP. Thủ Dầu Một / TP. Biên Hòa, giá 400k - 700k'
+    ]
+  },
+  {
+    id: 'ha_noi',
+    name: 'Hà Nội',
+    shortName: 'Hà Nội',
+    keywords: [
+      'hà nội', 'ha noi', 'hoàn kiếm', 'ba đình', 'đống đa', 'hai bà trưng', 'cầu giấy', 
+      'thanh xuân', 'hoàng mai', 'long biên', 'tây hồ', 'nam từ liêm', 'bắc từ liêm', 
+      'hà đông', 'nội bài', 'sơn tây', 'gia lâm', 'đông anh', 'thanh trì'
+    ],
+    defaultPrompts: [
+      'Tạo 5 cuốc lái xe hộ nội thành Hà Nội: Cầu Giấy, Hoàn Kiếm về Hà Đông, Long Biên, giá 180k - 350k',
+      'Tạo 8 cuốc đón khách say từ các nhà hàng lẩu nướng Phố Cổ, Tây Hồ về Nam Từ Liêm, Thanh Xuân',
+      'Tạo 4 cuốc lái xe hộ từ Hà Nội đi Bắc Ninh / Hưng Yên / Vĩnh Phúc, giá 450k - 750k'
+    ]
+  },
+  {
+    id: 'thanh_hoa',
+    name: 'Thanh Hóa',
+    shortName: 'Thanh Hóa',
+    keywords: [
+      'thanh hóa', 'thanh hoá', 'sầm sơn', 'bỉm sơn', 'thọ xuân', 'hải tiến', 
+      'tĩnh gia', 'nghi sơn', 'quảng xương', 'hoằng hóa', 'nông cống', 'triệu sơn', 'vinhomes thanh hóa'
+    ],
+    defaultPrompts: [
+      'Tạo 5 cuốc lái xe hộ tại TP. Thanh Hóa về Sầm Sơn, Quảng Xương, Hoằng Hóa, giá 150k - 350k',
+      'Tạo 6 cuốc khách nhậu tại đại lộ Lê Lợi, Vincom Thanh Hóa về Đông Sơn, Nông Cống, giá 200k - 400k',
+      'Tạo 3 cuốc lái xe hộ đón từ Sầm Sơn về TP. Thanh Hóa sau tiệc tối, giá 250k - 450k'
+    ]
+  }
+];
+
+export function checkTripMatchesProvince(trip, provinceName) {
+  if (!trip) return false;
+  if (!provinceName || provinceName === 'all') return true;
+
+  if (Array.isArray(trip.service_tags)) {
+    const hasTag = trip.service_tags.some(t => {
+      const lower = String(t).toLowerCase();
+      if (lower.includes(provinceName.toLowerCase())) return true;
+      if (provinceName === 'TP. Hồ Chí Minh' && (lower.includes('hcm') || lower.includes('sài gòn') || lower.includes('saigon'))) return true;
+      return false;
+    });
+    if (hasTag) return true;
+  }
+
+  const cfg = PROVINCE_CONFIGS.find(p => p.name === provinceName || p.id === provinceName);
+  const keywords = cfg ? cfg.keywords : [provinceName.toLowerCase()];
+  const textToSearch = `${trip.pickup_location || ''} ${trip.dropoff_location || ''} ${(trip.service_tags || []).join(' ')} ${trip.notes || ''}`.toLowerCase();
+
+  return keywords.some(kw => textToSearch.includes(kw.toLowerCase()));
+}
+
+export function checkTripIsOtherProvince(trip) {
+  if (!trip) return false;
+  const isKnown = PROVINCE_CONFIGS.some(cfg => checkTripMatchesProvince(trip, cfg.name));
+  return !isKnown;
+}
+
 export default function AdminLayout({ onSwitchToDriverApp }) {
   const { refreshDriver, refreshTripCounts } = useDriver();
 
@@ -180,7 +270,11 @@ export default function AdminLayout({ onSwitchToDriverApp }) {
     is_virtual: false
   });
 
-  // Trợ lý AI Groq tạo cuốc xe ảo (Quy trình 3 bước)
+  // Trợ lý AI Groq tạo cuốc xe ảo (Quy trình 3 bước có phân chia Tỉnh/Thành phố)
+  const [selectedAiProvince, setSelectedAiProvince] = useState('Đà Nẵng');
+  const [customAiProvince, setCustomAiProvince] = useState('');
+  const [aiTripScope, setAiTripScope] = useState('intra_province'); // 'intra_province' | 'nearby_provinces'
+  const [aiTripCount, setAiTripCount] = useState(5);
   const [aiPrompt, setAiPrompt] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
   const [aiPreviewTrips, setAiPreviewTrips] = useState([]);
@@ -189,21 +283,26 @@ export default function AdminLayout({ onSwitchToDriverApp }) {
   const [aiPublishing, setAiPublishing] = useState(false);
   const [showAiCard, setShowAiCard] = useState(true);
 
+  // Bộ lọc Tỉnh Thành cho Danh sách cuốc xe
+  const [tripProvinceFilter, setTripProvinceFilter] = useState('all'); // 'all', 'Đà Nẵng', 'TP. Hồ Chí Minh', 'Hà Nội', 'Thanh Hóa', 'other'
+
   const handleGenerateAiTrips = async (customPrompt) => {
+    const targetProvince = selectedAiProvince === 'custom' ? (customAiProvince.trim() || 'Đà Nẵng') : selectedAiProvince;
     const promptToSend = (customPrompt || aiPrompt || '').trim();
-    if (!promptToSend) {
-      showNotification('Vui lòng nhập lệnh prompt mô tả cuốc xe', 'error');
-      return;
-    }
     try {
       setAiLoading(true);
       if (customPrompt) setAiPrompt(customPrompt);
-      const res = await api.generateAiTrips({ prompt: promptToSend });
+      const res = await api.generateAiTrips({
+        prompt: promptToSend,
+        province: targetProvince,
+        scope: aiTripScope,
+        count: aiTripCount
+      });
       if (res && res.data && Array.isArray(res.data.trips)) {
         setAiPreviewTrips(res.data.trips);
         setSelectedPreviewIds(new Set(res.data.trips.map(t => t.preview_id)));
         setAiStats(res.data.stats || null);
-        showNotification(res.message || `AI đã tạo ${res.data.trips.length} cuốc xe hợp lệ!`, 'success');
+        showNotification(res.message || `AI đã tạo ${res.data.trips.length} cuốc xe hợp lệ cho ${targetProvince}!`, 'success');
       } else {
         throw new Error('Dữ liệu AI trả về không đúng định dạng');
       }
@@ -605,10 +704,21 @@ export default function AdminLayout({ onSwitchToDriverApp }) {
 
   // Lọc và Phân trang Danh sách cuốc xe
   const filteredTrips = trips.filter(t => {
+    // 1. Lọc theo Tỉnh Thành
+    if (tripProvinceFilter !== 'all') {
+      if (tripProvinceFilter === 'other') {
+        if (!checkTripIsOtherProvince(t)) return false;
+      } else {
+        if (!checkTripMatchesProvince(t, tripProvinceFilter)) return false;
+      }
+    }
+
+    // 2. Lọc theo Trạng thái
     if (tripStatusFilter === 'virtual' && !t.is_virtual) return false;
     if (tripStatusFilter === 'real' && t.is_virtual) return false;
     if (['new', 'accepted', 'completed', 'cancelled'].includes(tripStatusFilter) && t.status !== tripStatusFilter) return false;
 
+    // 3. Tìm kiếm theo từ khóa
     if (tripSearch.trim()) {
       const q = tripSearch.trim().toLowerCase();
       const matchId = String(t.id).includes(q);
@@ -1926,23 +2036,170 @@ export default function AdminLayout({ onSwitchToDriverApp }) {
 
                 {showAiCard && (
                   <div>
-                    {/* BƯỚC 1: KHUNG NHẬP LỆNH AI */}
+                    {/* BƯỚC 1: CẤU HÌNH TỈNH THÀNH & LỆNH AI */}
                     <div style={{ marginBottom: '16px' }}>
+                      {/* Chọn Tỉnh / Thành phố */}
+                      <div style={{ marginBottom: '14px' }}>
+                        <div style={{ fontSize: '12px', fontWeight: '700', color: '#CBD5E1', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <MapPin size={14} color="#818CF8" />
+                          <span>1. Chọn Tỉnh / Thành phố cần sinh cuốc (Dịch vụ Lái xe hộ đưa người & xe về nhà):</span>
+                        </div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
+                          {[
+                            { name: 'Đà Nẵng', label: '📍 Đà Nẵng' },
+                            { name: 'TP. Hồ Chí Minh', label: '📍 TP. Hồ Chí Minh' },
+                            { name: 'Hà Nội', label: '📍 Hà Nội' },
+                            { name: 'Thanh Hóa', label: '📍 Thanh Hóa' }
+                          ].map(prov => {
+                            const isSelected = selectedAiProvince === prov.name;
+                            return (
+                              <button
+                                key={prov.name}
+                                type="button"
+                                onClick={() => setSelectedAiProvince(prov.name)}
+                                style={{
+                                  backgroundColor: isSelected ? '#6366F1' : 'rgba(255, 255, 255, 0.07)',
+                                  color: isSelected ? '#FFFFFF' : '#CBD5E1',
+                                  border: isSelected ? '1px solid #818CF8' : '1px solid rgba(255, 255, 255, 0.15)',
+                                  borderRadius: '20px',
+                                  padding: '7px 16px',
+                                  fontSize: '12px',
+                                  fontWeight: isSelected ? '800' : '600',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.15s',
+                                  boxShadow: isSelected ? '0 2px 10px rgba(99, 102, 241, 0.45)' : 'none'
+                                }}
+                              >
+                                {prov.label}
+                              </button>
+                            );
+                          })}
+
+                          {/* Tùy chọn tỉnh khác */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <button
+                              type="button"
+                              onClick={() => setSelectedAiProvince('custom')}
+                              style={{
+                                backgroundColor: selectedAiProvince === 'custom' ? '#6366F1' : 'rgba(255, 255, 255, 0.07)',
+                                color: selectedAiProvince === 'custom' ? '#FFFFFF' : '#CBD5E1',
+                                border: selectedAiProvince === 'custom' ? '1px solid #818CF8' : '1px solid rgba(255, 255, 255, 0.15)',
+                                borderRadius: '20px',
+                                padding: '7px 14px',
+                                fontSize: '12px',
+                                fontWeight: selectedAiProvince === 'custom' ? '800' : '600',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              ✏️ Tỉnh khác...
+                            </button>
+                            {selectedAiProvince === 'custom' && (
+                              <input
+                                type="text"
+                                value={customAiProvince}
+                                onChange={(e) => setCustomAiProvince(e.target.value)}
+                                placeholder="Nhập tên tỉnh/thành..."
+                                style={{
+                                  backgroundColor: 'rgba(15, 23, 42, 0.8)',
+                                  border: '1px solid #818CF8',
+                                  borderRadius: '16px',
+                                  padding: '6px 12px',
+                                  color: '#FFFFFF',
+                                  fontSize: '12px',
+                                  outline: 'none',
+                                  width: '160px'
+                                }}
+                              />
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Chọn Phạm vi & Số lượng cuốc */}
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: isMobile ? '1fr' : '1fr auto',
+                        gap: '12px',
+                        marginBottom: '14px',
+                        padding: '10px 14px',
+                        backgroundColor: 'rgba(15, 23, 42, 0.5)',
+                        borderRadius: '12px',
+                        border: '1px solid rgba(255, 255, 255, 0.08)'
+                      }}>
+                        {/* Scope */}
+                        <div>
+                          <div style={{ fontSize: '11px', color: '#94A3B8', fontWeight: '600', marginBottom: '6px' }}>
+                            2. Phạm vi di chuyển (Lái xe hộ):
+                          </div>
+                          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                            <button
+                              type="button"
+                              onClick={() => setAiTripScope('intra_province')}
+                              style={{
+                                backgroundColor: aiTripScope === 'intra_province' ? 'rgba(99, 102, 241, 0.25)' : 'transparent',
+                                border: aiTripScope === 'intra_province' ? '1px solid #818CF8' : '1px solid rgba(255, 255, 255, 0.1)',
+                                color: aiTripScope === 'intra_province' ? '#A5B4FC' : '#94A3B8',
+                                borderRadius: '8px',
+                                padding: '6px 12px',
+                                fontSize: '11px',
+                                fontWeight: '700',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              🚗 Nội tỉnh ({selectedAiProvince === 'custom' ? (customAiProvince || 'tỉnh') : selectedAiProvince} đi {selectedAiProvince === 'custom' ? (customAiProvince || 'tỉnh') : selectedAiProvince}) • 4-35km (150k - 450k)
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setAiTripScope('nearby_provinces')}
+                              style={{
+                                backgroundColor: aiTripScope === 'nearby_provinces' ? 'rgba(99, 102, 241, 0.25)' : 'transparent',
+                                border: aiTripScope === 'nearby_provinces' ? '1px solid #818CF8' : '1px solid rgba(255, 255, 255, 0.1)',
+                                color: aiTripScope === 'nearby_provinces' ? '#A5B4FC' : '#94A3B8',
+                                borderRadius: '8px',
+                                padding: '6px 12px',
+                                fontSize: '11px',
+                                fontWeight: '700',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              🛣️ Tỉnh lân cận giáp ranh • 25-65km (350k - 800k)
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Count */}
+                        <div>
+                          <div style={{ fontSize: '11px', color: '#94A3B8', fontWeight: '600', marginBottom: '6px' }}>
+                            3. Số lượng cuốc xe:
+                          </div>
+                          <div style={{ display: 'flex', gap: '6px' }}>
+                            {[3, 5, 10, 15, 20].map(cnt => (
+                              <button
+                                key={cnt}
+                                type="button"
+                                onClick={() => setAiTripCount(cnt)}
+                                style={{
+                                  backgroundColor: aiTripCount === cnt ? '#6366F1' : 'rgba(255, 255, 255, 0.08)',
+                                  color: aiTripCount === cnt ? '#FFFFFF' : '#CBD5E1',
+                                  border: aiTripCount === cnt ? '1px solid #818CF8' : '1px solid rgba(255, 255, 255, 0.12)',
+                                  borderRadius: '6px',
+                                  padding: '5px 12px',
+                                  fontSize: '11px',
+                                  fontWeight: '800',
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                {cnt} cuốc
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Khung nhập lệnh AI tùy chỉnh (Tùy chọn) */}
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                        <label style={{ fontSize: '13px', fontWeight: '700', color: '#E0E7FF', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <span style={{
-                            backgroundColor: '#6366F1',
-                            color: '#FFFFFF',
-                            width: '20px',
-                            height: '20px',
-                            borderRadius: '50%',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '11px',
-                            fontWeight: '800'
-                          }}>1</span>
-                          <span>Nhập yêu cầu cuốc xe (Prompt tiếng Việt tự nhiên):</span>
+                        <label style={{ fontSize: '12px', fontWeight: '700', color: '#E0E7FF', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span>4. Lệnh yêu cầu thêm (Tùy chọn mô tả theo ý bạn hoặc để trống AI sẽ tự sinh chuẩn):</span>
                         </label>
                         {aiPrompt && (
                           <button
@@ -1960,7 +2217,7 @@ export default function AdminLayout({ onSwitchToDriverApp }) {
                           rows={isMobile ? 3 : 2}
                           value={aiPrompt}
                           onChange={(e) => setAiPrompt(e.target.value)}
-                          placeholder='Ví dụ: "Tạo 20 cuốc xe từ các thành phố lớn, giá 3–5 triệu, xe 5–7 chỗ." hoặc "Tạo 5 cuốc quanh Thanh Hoá giá 150k - 300k"'
+                          placeholder={`Ví dụ: "Tạo cuốc xe đón khách nhậu say tại ${selectedAiProvince === 'custom' ? (customAiProvince || 'tỉnh') : selectedAiProvince}, xe 7 chỗ số tự động, giá hợp lý"`}
                           style={{
                             width: '100%',
                             boxSizing: 'border-box',
@@ -1983,19 +2240,19 @@ export default function AdminLayout({ onSwitchToDriverApp }) {
                         />
                       </div>
 
-                      {/* Gợi ý lệnh nhanh (Quick prompt pills) */}
+                      {/* Gợi ý lệnh nhanh mẫu theo tỉnh đã chọn */}
                       <div style={{ marginTop: '10px' }}>
                         <div style={{ fontSize: '11px', color: '#94A3B8', fontWeight: '600', marginBottom: '6px' }}>
-                          💡 Gợi ý lệnh nhanh mẫu (Click để chọn ngay):
+                          💡 Gợi ý lệnh nhanh mẫu cho {selectedAiProvince === 'custom' ? (customAiProvince || 'khu vực này') : selectedAiProvince} (Click để chọn ngay):
                         </div>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                          {[
-                            'Tạo 20 cuốc xe từ các thành phố lớn, giá 3–5 triệu, xe 5–7 chỗ.',
-                            'Tạo 10 cuốc xe liên tỉnh Hà Nội - Ninh Bình - Thanh Hoá - Hải Phòng, giá 800k - 2 triệu.',
-                            'Tạo 6 cuốc xe quanh TP. Thanh Hoá (Vinhomes, FLC Sầm Sơn, Hải Tiến), giá 150k - 400k.',
-                            'Tạo 8 cuốc xe đêm lái xe hộ sau tiệc tùng nhà hàng, giá 250k - 500k.',
-                            'Tạo 5 cuốc xe đón tiễn sân bay Nội Bài & Thọ Xuân sáng sớm, giá 350k - 700k.'
-                          ].map((item, idx) => (
+                          {(
+                            PROVINCE_CONFIGS.find(p => p.name === selectedAiProvince)?.defaultPrompts || [
+                              `Tạo ${aiTripCount} cuốc lái xe hộ tại ${selectedAiProvince === 'custom' ? (customAiProvince || 'tỉnh') : selectedAiProvince}, giá 150k - 350k`,
+                              `Tạo ${aiTripCount} cuốc xe đêm sau tiệc tùng nhà hàng tại ${selectedAiProvince === 'custom' ? (customAiProvince || 'tỉnh') : selectedAiProvince}, xe 5-7 chỗ`,
+                              `Tạo ${aiTripCount} cuốc lái xe hộ từ ${selectedAiProvince === 'custom' ? (customAiProvince || 'tỉnh') : selectedAiProvince} đi các huyện lân cận giáp ranh`
+                            ]
+                          ).map((item, idx) => (
                             <button
                               key={idx}
                               type="button"
@@ -2033,22 +2290,22 @@ export default function AdminLayout({ onSwitchToDriverApp }) {
                       </div>
 
                       {/* Nút Kích hoạt AI */}
-                      <div style={{ marginTop: '14px', display: 'flex', gap: '10px', alignItems: 'center' }}>
+                      <div style={{ marginTop: '14px', display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
                         <button
                           type="button"
                           onClick={() => handleGenerateAiTrips()}
-                          disabled={aiLoading || !aiPrompt.trim()}
+                          disabled={aiLoading}
                           style={{
-                            background: aiLoading || !aiPrompt.trim()
+                            background: aiLoading
                               ? '#475569'
                               : 'linear-gradient(135deg, #6366F1 0%, #A855F7 100%)',
                             color: '#FFFFFF',
                             border: 'none',
                             borderRadius: '12px',
-                            padding: '12px 22px',
+                            padding: '12px 24px',
                             fontSize: '13px',
                             fontWeight: '800',
-                            cursor: aiLoading || !aiPrompt.trim() ? 'not-allowed' : 'pointer',
+                            cursor: aiLoading ? 'not-allowed' : 'pointer',
                             display: 'flex',
                             alignItems: 'center',
                             gap: '8px',
@@ -2057,10 +2314,14 @@ export default function AdminLayout({ onSwitchToDriverApp }) {
                           }}
                         >
                           <Sparkles size={16} className={aiLoading ? 'animate-spin' : ''} />
-                          <span>{aiLoading ? 'AI đang sinh & kiểm tra cuốc xe...' : 'AI TẠO & KIỂM TRA CUỐC XE'}</span>
+                          <span>
+                            {aiLoading 
+                              ? `AI đang tạo & lọc cuốc xe cho ${selectedAiProvince === 'custom' ? (customAiProvince || 'tỉnh') : selectedAiProvince}...` 
+                              : `AI TẠO & KIỂM TRA ${aiTripCount} CUỐC XE (${selectedAiProvince === 'custom' ? (customAiProvince || 'Tỉnh') : selectedAiProvince})`}
+                          </span>
                         </button>
-                        <span style={{ fontSize: '11px', color: '#64748B' }}>
-                          (Phím tắt: Ctrl + Enter để tạo)
+                        <span style={{ fontSize: '11px', color: '#94A3B8' }}>
+                          (Nhấn để AI sinh ngay cuốc nội tỉnh hoặc Ctrl + Enter)
                         </span>
                       </div>
                     </div>
@@ -2548,6 +2809,73 @@ export default function AdminLayout({ onSwitchToDriverApp }) {
                     </div>
                   </div>
 
+                  {/* BỘ LỌC TỈNH THÀNH (Click vào ô tỉnh để lọc tất cả các cuốc của tỉnh đó) */}
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    overflowX: 'auto',
+                    WebkitOverflowScrolling: 'touch',
+                    padding: '8px 12px',
+                    backgroundColor: '#F8FAFC',
+                    borderRadius: '12px',
+                    border: '1px solid #E2E8F0'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', fontWeight: '800', color: '#1E293B', whiteSpace: 'nowrap' }}>
+                      <MapPin size={15} color="#4F46E5" />
+                      <span>Khu vực / Tỉnh thành:</span>
+                    </div>
+
+                    {[
+                      { key: 'all', label: 'Tất cả tỉnh thành', count: trips.length },
+                      { key: 'Đà Nẵng', label: 'Đà Nẵng', count: trips.filter(t => checkTripMatchesProvince(t, 'Đà Nẵng')).length },
+                      { key: 'TP. Hồ Chí Minh', label: 'TP. Hồ Chí Minh', count: trips.filter(t => checkTripMatchesProvince(t, 'TP. Hồ Chí Minh')).length },
+                      { key: 'Hà Nội', label: 'Hà Nội', count: trips.filter(t => checkTripMatchesProvince(t, 'Hà Nội')).length },
+                      { key: 'Thanh Hóa', label: 'Thanh Hóa', count: trips.filter(t => checkTripMatchesProvince(t, 'Thanh Hóa')).length },
+                      { key: 'other', label: 'Tỉnh khác', count: trips.filter(t => checkTripIsOtherProvince(t)).length }
+                    ].map(provTab => {
+                      const isSelected = tripProvinceFilter === provTab.key;
+                      return (
+                        <button
+                          key={provTab.key}
+                          type="button"
+                          onClick={() => {
+                            setTripProvinceFilter(provTab.key);
+                            setTripPage(1);
+                          }}
+                          style={{
+                            padding: '6px 14px',
+                            borderRadius: '20px',
+                            border: isSelected ? '1px solid #6366F1' : '1px solid #CBD5E1',
+                            backgroundColor: isSelected ? '#6366F1' : '#FFFFFF',
+                            color: isSelected ? '#FFFFFF' : '#334155',
+                            fontSize: '12px',
+                            fontWeight: isSelected ? '800' : '600',
+                            cursor: 'pointer',
+                            whiteSpace: 'nowrap',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            transition: 'all 0.15s ease',
+                            boxShadow: isSelected ? '0 2px 8px rgba(99, 102, 241, 0.35)' : 'none'
+                          }}
+                        >
+                          <span>{provTab.label}</span>
+                          <span style={{
+                            backgroundColor: isSelected ? 'rgba(255, 255, 255, 0.25)' : '#E2E8F0',
+                            color: isSelected ? '#FFFFFF' : '#475569',
+                            fontSize: '11px',
+                            fontWeight: '800',
+                            padding: '1px 7px',
+                            borderRadius: '10px'
+                          }}>
+                            {provTab.count}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
                   {/* Thanh tìm kiếm & Tabs lọc trạng thái */}
                   <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '10px', alignItems: isMobile ? 'stretch' : 'center' }}>
                     <div style={{ position: 'relative', flex: 1, minWidth: isMobile ? '100%' : '260px' }}>
@@ -2665,7 +2993,23 @@ export default function AdminLayout({ onSwitchToDriverApp }) {
                         paginatedTrips.map(t => (
                           <tr key={t.id} style={{ borderBottom: '1px solid #E5E7EB' }}>
                             <td style={{ padding: '12px', fontWeight: '700' }}>#{t.id}</td>
-                            <td style={{ padding: '12px', color: '#D32F2F', fontWeight: '600' }}>{t.pickup_location}</td>
+                            <td style={{ padding: '12px', color: '#D32F2F', fontWeight: '600' }}>
+                              <div>{t.pickup_location}</div>
+                              <div style={{ display: 'flex', gap: '4px', marginTop: '4px', flexWrap: 'wrap' }}>
+                                {PROVINCE_CONFIGS.filter(p => checkTripMatchesProvince(t, p.name)).map(p => (
+                                  <span key={p.name} style={{
+                                    fontSize: '10px',
+                                    backgroundColor: '#EEF2FF',
+                                    color: '#4F46E5',
+                                    fontWeight: '700',
+                                    padding: '1px 6px',
+                                    borderRadius: '6px'
+                                  }}>
+                                    📍 {p.shortName}
+                                  </span>
+                                ))}
+                              </div>
+                            </td>
                             <td style={{ padding: '12px', fontWeight: '600' }}>{t.dropoff_location}</td>
                             <td style={{ padding: '12px', fontWeight: '800', color: '#D32F2F' }}>
                               {Number(t.price).toLocaleString('vi-VN')}đ

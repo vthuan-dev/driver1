@@ -12,23 +12,37 @@ function getApiKey() {
   return process.env.GROQ_API_KEY || '';
 }
 
-const SYSTEM_PROMPT = `Bạn là Trợ lý AI chuyên nghiệp của nền tảng vận tải & lái xe hộ tại Việt Nam.
-Nhiệm vụ của bạn: Tạo danh sách các cuốc xe theo yêu cầu người dùng (prompt).
+const SYSTEM_PROMPT = `Bạn là Trợ lý AI chuyên nghiệp của nền tảng dịch vụ "LÁI XE HỘ" (Bạn Uống Tôi Lái) hàng đầu tại Việt Nam.
+
+BẢN CHẤT DỊCH VỤ LÁI XE HỘ:
+- Khách hàng là chủ sở hữu xe ô tô (xe 4-7 chỗ số tự động hoặc số sàn cá nhân).
+- Khách đi ăn uống, tiệc tùng, có chút men say hoặc mệt mỏi, thuê tài xế lái chính chiếc xe của khách đưa cả người và xe về nhà an toàn.
+- ĐẶC THÙ LỘ TRÌNH:
+  1. Cuốc xe NỘI TỈNH (trong cùng một tỉnh/thành phố): TỪ TỈNH NÀY ĐI TỈNH NÀY THÔI!
+     - Ví dụ Đà Nẵng: từ các quán nhậu ven biển, nhà hàng đường 2/9, Bạch Đằng, Sơn Trà về chung cư/nhà riêng Hải Châu, Cẩm Lệ, Ngũ Hành Sơn.
+     - Ví dụ TP. Hồ Chí Minh: từ Quận 1 đi Quận 12, từ Quận 3 đi Bình Thạnh, từ Quận 7 đi Gò Vấp/Tân Bình.
+     - Ví dụ Hà Nội: từ Hoàn Kiếm, Cầu Giấy, Tây Hồ về Long Biên, Hà Đông, Nam Từ Liêm.
+     - Ví dụ Thanh Hóa: từ TP. Thanh Hóa về Sầm Sơn, Quảng Xương, Hoằng Hóa, Đông Sơn.
+     - Khoảng cách nội tỉnh: 4km - 35km. Giá cước: 150.000đ - 450.000đ.
+  2. Cuốc xe TỈNH GIÁP RANH (chỉ giữa các tỉnh lân cận sát nhau):
+     - Ví dụ: Đà Nẵng đi Hội An/Điện Bàn (Quảng Nam); Hà Nội đi Từ Sơn (Bắc Ninh) hoặc Văn Giang (Hưng Yên); TP.HCM đi Dĩ An/Biên Hòa.
+     - Khoảng cách: 25km - 65km. Giá cước: 350.000đ - 800.000đ.
+  3. TUYỆT ĐỐI CẤM: Không bao giờ sinh cuốc xe xuyên Việt (như Hà Nội đi TP.HCM, Đà Nẵng đi Cần Thơ) vì dịch vụ lái xe hộ không ai đi như vậy!
 
 QUY TẮC BẮT BUỘC VỀ DỮ LIỆU:
 1. Địa chỉ điểm đón (pickup_location) và điểm trả (dropoff_location):
-   - Phải là địa chỉ có thật, cụ thể, chính xác tại Việt Nam (có tên đường, tòa nhà, khách sạn, bến xe, sân bay, bệnh viện, khu công nghiệp, quận/huyện, tỉnh/thành).
+   - Phải có tên quán/nhà hàng/tòa nhà, tên đường, phường/xã, quận/huyện, tỉnh/thành phố rõ ràng.
    - Điểm đón và điểm trả KHÔNG ĐƯỢC TRÙNG NHAU.
-2. Quãng đường (distance_km): Số thực hoặc số nguyên > 0, tính theo khoảng cách thực tế giữa 2 điểm.
-3. Thời gian dự kiến (estimated_minutes): Số nguyên phút, phù hợp với quãng đường (trung bình 30-60 km/h tùy nội thành hoặc đường dài).
+2. Quãng đường (distance_km): Số thực hoặc số nguyên > 0, tính theo khoảng cách thực tế giữa 2 điểm (4 - 40km cho nội tỉnh).
+3. Thời gian dự kiến (estimated_minutes): Số nguyên phút, phù hợp với quãng đường (15 - 60 phút).
 4. Giá cước (price): Số nguyên tiền Việt Nam Đồng (VNĐ).
-   - Nếu prompt có chỉ định giá (ví dụ "giá 3-5 triệu", "150k - 300k"), BẮT BUỘC giá phải nằm trong khoảng người dùng yêu cầu (ví dụ: 3000000 đến 5000000).
-   - Nếu prompt không chỉ định giá: Tính khoảng 12.000đ - 18.000đ/km (tối thiểu 100.000đ).
-5. Thẻ dịch vụ (service_tags): Mảng chuỗi tiếng Việt (ví dụ: ["Lái xe hộ", "Xe 7 chỗ", "Đường dài"], ["Lái xe hộ", "Xe 5 chỗ", "Nội thành"], ["Lái xe hộ", "Đi tỉnh", "Cao tốc"]).
+   - Nội tỉnh: 150.000đ - 450.000đ.
+   - Tỉnh giáp ranh: 350.000đ - 800.000đ.
+5. Thẻ dịch vụ (service_tags): Mảng chuỗi tiếng Việt (ví dụ: ["Lái xe hộ", "Đà Nẵng", "Chở người say"], ["Lái xe hộ", "TP. Hồ Chí Minh", "Quận 1 - Quận 12"]).
 6. Khách hàng:
-   - customer_name: Tên khách hàng xưng hô thân mật tự nhiên (ví dụ: "Anh Nam", "Chị Hạnh", "Bác Tuấn", "Anh Tuấn Anh", "Chị Mai Phương").
-   - customer_phone: Số điện thoại Việt Nam ngẫu nhiên (dạng "09xx xxx xxx" hoặc "08xx xxx xxx").
-   - notes: Ghi chú cuốc xe thực tế (ví dụ: "Khách cần lái xe bán tải Ford Ranger số tự động", "Xe Mercedes C200, đón đúng giờ", "Khách có chút men say, yêu cầu lái xe cẩn thận", "Cần xe sạch sẽ, có hành lý đi sân bay").
+   - customer_name: Tên khách xưng hô thân mật (ví dụ: "Anh Nam", "Chị Thảo", "Bác Tuấn", "Anh Minh", "Chị Hương").
+   - customer_phone: Số điện thoại Việt Nam ngẫu nhiên (dạng "09xx xxx xxx").
+   - notes: Ghi chú cuốc xe thực tế (ví dụ: "Khách có uống rượu bia, xe Mazda CX-5, cần lái xe cẩn thận", "Xe Fortuner số tự động, đón trước sảnh nhà hàng", "Khách say, đưa về tận sảnh chung cư").
 
 BẮT BUỘC TRẢ VỀ ĐỊNH DẠNG JSON DUY NHẤT:
 {
@@ -87,7 +101,7 @@ async function callGroqChat(messages, model) {
 /**
  * Kiểm tra, làm sạch và loại bỏ trùng lặp dữ liệu cuốc xe (Sanitization & Validation)
  */
-function sanitizeAndValidateTrips(rawTrips) {
+function sanitizeAndValidateTrips(rawTrips, targetProvince = '') {
   if (!Array.isArray(rawTrips)) {
     return [];
   }
@@ -96,7 +110,7 @@ function sanitizeAndValidateTrips(rawTrips) {
   const validTrips = [];
 
   const defaultNames = ['Anh Hùng', 'Chị Lan', 'Anh Minh', 'Bác Thành', 'Chị Ngọc', 'Anh Dũng', 'Chị Hà'];
-  const defaultTags = ['Lái xe hộ', 'Xe gia đình'];
+  const defaultTags = ['Lái xe hộ'];
 
   for (let i = 0; i < rawTrips.length; i++) {
     const item = rawTrips[i];
@@ -119,18 +133,18 @@ function sanitizeAndValidateTrips(rawTrips) {
     // 4. Chuẩn hóa Quãng đường & Thời gian
     let distance = Number(item.distance_km);
     if (!distance || isNaN(distance) || distance <= 0) {
-      distance = Math.floor(Math.random() * 25) + 5; // 5 - 30km
+      distance = Math.floor(Math.random() * 20) + 5; // 5 - 25km
     }
 
     let minutes = Number(item.estimated_minutes);
     if (!minutes || isNaN(minutes) || minutes <= 0) {
-      minutes = Math.round(distance * 1.5 + 5);
+      minutes = Math.round(distance * 1.6 + 5);
     }
 
     // 5. Chuẩn hóa Giá cước (VNĐ số nguyên)
     let price = Number(item.price);
     if (!price || isNaN(price) || price < 50000) {
-      price = Math.max(100000, Math.round((distance * 15000) / 10000) * 10000);
+      price = Math.max(150000, Math.round((distance * 15000) / 10000) * 10000);
     } else {
       // Làm tròn đến hàng nghìn
       price = Math.round(price / 1000) * 1000;
@@ -143,6 +157,10 @@ function sanitizeAndValidateTrips(rawTrips) {
     if (!serviceTags.some(t => t.toLowerCase().includes('lái xe'))) {
       serviceTags.unshift('Lái xe hộ');
     }
+    // Gắn thẻ Tỉnh thành vào cuốc xe để hỗ trợ bộ lọc
+    if (targetProvince && !serviceTags.includes(targetProvince)) {
+      serviceTags.splice(1, 0, targetProvince);
+    }
 
     // 7. Khách hàng & SĐT
     const customerName = (item.customer_name || defaultNames[i % defaultNames.length]).trim();
@@ -153,7 +171,7 @@ function sanitizeAndValidateTrips(rawTrips) {
     }
 
     // 8. Ghi chú
-    const notes = (item.notes || 'Khách đặt cuốc qua ứng dụng, yêu cầu tài xế hỗ trợ chu đáo.').trim();
+    const notes = (item.notes || 'Khách say cần lái xe hộ đưa cả người và xe về nhà an toàn.').trim();
 
     validTrips.push({
       preview_id: `prev_${Date.now().toString(36)}_${i}_${Math.random().toString(36).substring(2, 5)}`,
@@ -175,14 +193,35 @@ function sanitizeAndValidateTrips(rawTrips) {
 }
 
 /**
- * Hàm chính: Tạo danh sách cuốc xe ảo từ Prompt của Admin
+ * Hàm chính: Tạo danh sách cuốc xe ảo từ Prompt của Admin (có phân chia theo Tỉnh/Thành phố)
  */
-async function generateVirtualTrips(userPrompt) {
-  if (!userPrompt || !userPrompt.trim()) {
-    throw new Error('Vui lòng nhập lệnh prompt mô tả cuốc xe cần tạo');
+async function generateVirtualTrips(userPrompt, options = {}) {
+  const { province = 'Đà Nẵng', scope = 'intra_province', count = 5 } = options;
+
+  let promptText = '';
+  if (province) {
+    if (scope === 'intra_province') {
+      promptText = `YÊU CẦU LỘ TRÌNH ĐẶC THÙ LÁI XE HỘ:
+Tạo chính xác ${count} cuốc xe LÁI XE HỘ NỘI TỈNH trong phạm vi ${province} (TỪ ${province.toUpperCase()} ĐI ${province.toUpperCase()} THÔI).
+Tất cả điểm đón và điểm trả 100% BẮT BUỘC phải nằm trong địa bàn ${province}.
+- Điểm đón: Các quán nhậu, nhà hàng, quán bar, quán bia, khách sạn, trung tâm tiệc tại ${province}.
+- Điểm trả: Chung cư, khu dân cư, ngõ phố nhà riêng tại ${province}.
+- Ví dụ nếu là TP. Hồ Chí Minh: Sinh các cuốc như Quận 1 đi Quận 12, Quận 3 đi Gò Vấp, Bình Thạnh đi Thủ Đức, Quận 7 đi Tân Bình...
+- Ví dụ nếu là Đà Nẵng: Sinh các cuốc như Hải Châu, Sơn Trà, Ngũ Hành Sơn đi Cẩm Lệ, Thanh Khê, Liên Chiểu...
+- Quãng đường: 4km đến 35km. Giá cước: 150.000đ đến 450.000đ.
+${userPrompt && userPrompt.trim() ? `Yêu cầu thêm từ người dùng: ${userPrompt.trim()}` : ''}`;
+    } else if (scope === 'nearby_provinces') {
+      promptText = `YÊU CẦU LỘ TRÌNH LÁI XE HỘ LIÊN TỈNH GẦN NHAU:
+Tạo chính xác ${count} cuốc xe LÁI XE HỘ xuất phát từ ${province} đi các HUYỆN/TỈNH LÂN CẬN GIÁP RANH SÁT NHAU với ${province} (ví dụ Đà Nẵng đi Hội An/Điện Bàn Quảng Nam; Hà Nội đi Từ Sơn Bắc Ninh/Văn Giang Hưng Yên; TP.HCM đi Dĩ An/Biên Hòa; Thanh Hóa đi Sầm Sơn/Bỉm Sơn/Ninh Bình).
+- Quãng đường hợp lý: 25km đến 65km. Giá cước: 350.000đ đến 800.000đ.
+${userPrompt && userPrompt.trim() ? `Yêu cầu thêm từ người dùng: ${userPrompt.trim()}` : ''}`;
+    } else {
+      promptText = `Tạo ${count} cuốc xe lái xe hộ tại ${province}. ${userPrompt ? userPrompt.trim() : ''}`;
+    }
+  } else {
+    promptText = userPrompt && userPrompt.trim() ? userPrompt.trim() : 'Tạo 5 cuốc xe lái xe hộ trong nội thành.';
   }
 
-  const promptText = userPrompt.trim();
   const messages = [
     { role: 'system', content: SYSTEM_PROMPT },
     { role: 'user', content: promptText }
@@ -206,10 +245,10 @@ async function generateVirtualTrips(userPrompt) {
   }
 
   const rawList = rawJson.trips || rawJson.data || [];
-  const validTrips = sanitizeAndValidateTrips(rawList);
+  const validTrips = sanitizeAndValidateTrips(rawList, province);
 
   if (validTrips.length === 0) {
-    throw new Error('AI không thể tạo được danh sách cuốc xe hợp lệ từ mô tả này. Vui lòng thử lại với câu lệnh chi tiết hơn!');
+    throw new Error('AI không thể tạo được danh sách cuốc xe hợp lệ từ mô tả này. Vui lòng thử lại!');
   }
 
   const totalAmount = validTrips.reduce((sum, t) => sum + (t.price || 0), 0);
@@ -219,6 +258,8 @@ async function generateVirtualTrips(userPrompt) {
     success: true,
     model: usedModel,
     prompt: promptText,
+    province: province,
+    scope: scope,
     count: validTrips.length,
     original_count: rawList.length,
     stats: {

@@ -661,16 +661,13 @@ exports.changeAdminPassword = async (req, res) => {
 // Bước 2: AI Tạo và Kiểm Tra Cuốc Xe (Preview)
 exports.generateAiTrips = async (req, res) => {
   try {
-    const { prompt } = req.body || {};
+    const { prompt, province, scope, count } = req.body || {};
 
-    if (!prompt || !prompt.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Vui lòng cung cấp nội dung prompt mô tả cuốc xe cần tạo'
-      });
-    }
-
-    const result = await aiTripService.generateVirtualTrips(prompt);
+    const result = await aiTripService.generateVirtualTrips(prompt, {
+      province: province || 'Đà Nẵng',
+      scope: scope || 'intra_province',
+      count: Number(count) || 5
+    });
 
     res.json({
       success: true,

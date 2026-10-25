@@ -591,10 +591,11 @@ export default function AdminLayout({ onSwitchToDriverApp }) {
     }
   };
 
-  const handleAutoGenerateVirtual = async () => {
+  const handleAutoGenerateVirtual = async (provinceArg) => {
     try {
-      const res = await api.autoGenerateVirtualTrips();
-      showNotification(res.message);
+      const targetProv = provinceArg || (tripProvinceFilter !== 'all' ? tripProvinceFilter : (selectedAiProvince !== 'custom' ? selectedAiProvince : 'Đà Nẵng'));
+      const res = await api.autoGenerateVirtualTrips({ province: targetProv });
+      showNotification(res.message || `Đã sinh 3 cuốc xe ảo đa dạng cho ${targetProv}!`, 'success');
       loadAllData();
     } catch (err) {
       showNotification(err.message, 'error');
@@ -2674,7 +2675,8 @@ export default function AdminLayout({ onSwitchToDriverApp }) {
                     Thêm cuốc xe vào hệ thống (Job Feed)
                   </h3>
                   <button
-                    onClick={handleAutoGenerateVirtual}
+                    onClick={() => handleAutoGenerateVirtual()}
+                    title="Tự động sinh 3 cuốc xe đa dạng, không trùng lặp"
                     style={{
                       background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
                       color: '#FFFFFF',
@@ -2691,7 +2693,7 @@ export default function AdminLayout({ onSwitchToDriverApp }) {
                     }}
                   >
                     <Sparkles size={16} />
-                    <span>Tự động sinh 3 cuốc ảo</span>
+                    <span>Tự động sinh 3 cuốc ảo đa dạng</span>
                   </button>
                 </div>
 

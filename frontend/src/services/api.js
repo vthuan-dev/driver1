@@ -49,7 +49,7 @@ export const api = {
   updateDriverDocuments: (id, data) => request(`/admin/drivers/${id}/documents`, { method: 'PATCH', body: JSON.stringify(data) }),
   createTrip: (data) => request('/admin/trips', { method: 'POST', body: JSON.stringify(data) }),
   createVirtualTrip: (data) => request('/admin/trips/virtual', { method: 'POST', body: JSON.stringify(data) }),
-  autoGenerateVirtualTrips: () => request('/admin/trips/virtual/auto-generate', { method: 'POST' }),
+  autoGenerateVirtualTrips: (data = {}) => request('/admin/trips/virtual/auto-generate', { method: 'POST', body: JSON.stringify(data) }),
   updateDriverMetrics: (id, data) => request(`/admin/drivers/${id}/metrics`, { method: 'PATCH', body: JSON.stringify(data) }),
   toggleBlockDriver: (id) => request(`/admin/drivers/${id}/toggle-block`, { method: 'PATCH' }),
   deleteDriver: (id) => request(`/admin/drivers/${id}`, { method: 'DELETE' }),

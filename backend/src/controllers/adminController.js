@@ -239,63 +239,111 @@ exports.createVirtualTrip = async (req, res) => {
   }
 };
 
-// Tự động sinh hàng loạt 3-5 cuốc ảo mẫu
+// Tự động sinh hàng loạt 3-5 cuốc ảo đa dạng (Hỗ trợ theo Tỉnh thành & AI tự động)
 exports.autoGenerateVirtualTrips = async (req, res) => {
   try {
-    const sampleTrips = [
-      {
-        pickup_location: 'Khu Đô Thị Vinhomes Star City',
-        dropoff_location: 'Sân Golf FLC Sầm Sơn',
-        distance_km: 18,
-        estimated_minutes: 25,
-        price: 150000,
-        service_tags: ['Lái xe hộ', 'Xe tiện chuyến'],
-        time_posted: '1 phút trước'
-      },
-      {
-        pickup_location: 'Ngã Ba Voi, P. Đông Hương',
-        dropoff_location: 'Thị xã Bỉm Sơn',
-        distance_km: 36,
-        estimated_minutes: 45,
-        price: 260000,
-        service_tags: ['Lái xe hộ', 'Đường dài'],
-        time_posted: '3 phút trước'
-      },
-      {
-        pickup_location: 'Khách sạn Mường Thanh Thanh Hoá',
-        dropoff_location: 'Nhà ga Thanh Hoá',
-        distance_km: 8,
-        estimated_minutes: 15,
-        price: 90000,
-        service_tags: ['Lái xe hộ'],
-        time_posted: '4 phút trước'
+    const { province } = req.body || {};
+    const targetProvince = province || ['Đà Nẵng', 'TP. Hồ Chí Minh', 'Hà Nội', 'Thanh Hóa'][Math.floor(Math.random() * 4)];
+
+    let generatedTrips = [];
+
+    // Ưu tiên 1: Thử dùng AI Groq tạo 3 cuốc hoàn toàn mới lạ cho tỉnh này
+    try {
+      const aiResult = await aiTripService.generateVirtualTrips('', {
+        province: targetProvince,
+        scope: 'intra_province',
+        count: 3
+      });
+      if (aiResult && Array.isArray(aiResult.trips) && aiResult.trips.length > 0) {
+        generatedTrips = aiResult.trips;
       }
-    ];
+    } catch (aiErr) {
+      console.warn('AI generate trong autoGenerateVirtualTrips gặp lỗi, dùng Dynamic Diversity Generator:', aiErr.message);
+    }
+
+    // Ưu tiên 2: Nếu AI không khả dụng, dùng Kho dữ liệu ngẫu nhiên đa dạng (không bao giờ lặp lại 3 cuốc cứng)
+    if (generatedTrips.length === 0) {
+      const { DIVERSITY_DATA } = aiTripService;
+      const shuffledCars = [...(DIVERSITY_DATA?.car_models || ['Mazda CX-5', 'Mercedes C200', 'Toyota Camry'])].sort(() => 0.5 - Math.random());
+      const shuffledSituations = [...(DIVERSITY_DATA?.customer_situations || ['Khách say cần lái xe hộ đưa cả người và xe về nhà an toàn.'])].sort(() => 0.5 - Math.random());
+      const shuffledNames = [...(DIVERSITY_DATA?.customer_names || ['Anh Tuấn Anh', 'Chị Mai Lan', 'Anh Quốc Hùng'])].sort(() => 0.5 - Math.random());
+
+      // Kho địa điểm phong phú theo từng khu vực
+      const venuePools = {
+        'TP. Hồ Chí Minh': [
+          { p: 'Quán ốc Đêm 79, 142 Bờ Kè Kênh Nhiêu Lộc, P. 11, Q. 3', d: 'Chung cư Masteri Thảo Điền Tháp T3, TP. Thủ Đức', dist: 9.8, pr: 210000 },
+          { p: 'Nhà hàng Lẩu Nướng Sân Vườn 365, 88 Bàu Cát, P. 14, Q. Tân Bình', d: 'Khu dân cư Trung Sơn, Bình Hưng, Huyện Bình Chánh', dist: 14.2, pr: 270000 },
+          { p: 'Hầm rượu vang V VIP, 18 Pasteur, P. Bến Nghé, Quận 1', d: 'Khu biệt thự Chateau, Tân Phú, Quận 7', dist: 12.5, pr: 290000 },
+          { p: 'Beer Garden Phố Đêm, 220 Phạm Văn Đồng, P. 1, Q. Gò Vấp', d: 'Chung cư Sunrise City Block Central, Q. 7', dist: 16.8, pr: 320000 },
+          { p: 'Quán Dê Tươi Núi Ngự, 45 Sư Vạn Hạnh, P. 12, Quận 10', d: 'Hẻm 382/15 Quang Trung, P. 10, Q. Gò Vấp', dist: 11.2, pr: 230000 },
+          { p: 'Nhà hàng Hải Sản Bơi Sống Biển Đông, 716 Trần Hưng Đạo, P. 2, Quận 5', d: 'KĐT Sala Đại Quang Minh, P. An Lợi Đông, TP. Thủ Đức', dist: 8.5, pr: 190000 }
+        ],
+        'Hà Nội': [
+          { p: 'Quán Bia Hơi Cổ 1980, 52 Bát Đàn, P. Hàng Bồ, Q. Hoàn Kiếm', d: 'Chung cư Vinhomes Smart City Tòa S2, Q. Nam Từ Liêm', dist: 15.6, pr: 280000 },
+          { p: 'Lẩu Nướng Than Hoa Phố Đêm, 118 Tô Hiệu, P. Dịch Vọng, Q. Cầu Giấy', d: 'Khu đô thị Ngoại Giao Đoàn Tòa N03, Q. Bắc Từ Liêm', dist: 7.2, pr: 180000 },
+          { p: 'Hầm Rượu Vang De Paris, 36 Phan Chu Trinh, Q. Hoàn Kiếm', d: 'Biệt thự Bằng Lăng Vinhomes Riverside, Q. Long Biên', dist: 11.8, pr: 260000 },
+          { p: 'Nhà hàng Lẩu Dê Đồng Quê, 89 Nguyễn Khang, P. Yên Hòa, Q. Cầu Giấy', d: 'KĐT Văn Quán, P. Phúc La, Q. Hà Đông', dist: 10.5, pr: 220000 },
+          { p: 'Rooftop Bar Hồ Tây, 24 Quảng An, P. Quảng An, Q. Tây Hồ', d: 'Chung cư Imperia Garden, 203 Nguyễn Huy Tưởng, Q. Thanh Xuân', dist: 12.3, pr: 240000 }
+        ],
+        'Đà Nẵng': [
+          { p: 'Quán Bia Tươi Biển Đêm, 158 Võ Nguyên Giáp, P. Phước Mỹ, Q. Sơn Trà', d: 'Khu đô thị Hòa Xuân, P. Hòa Xuân, Q. Cẩm Lệ', dist: 11.4, pr: 230000 },
+          { p: 'Nhà hàng Nướng Cay 77, 24 Phan Tứ, P. Mỹ An, Q. Ngũ Hành Sơn', d: 'Chung cư Blooming Tower, P. Thuận Phước, Q. Hải Châu', dist: 8.2, pr: 190000 },
+          { p: 'Quán Lẩu Bò Sáu Cay, 89 Nguyễn Tri Phương, P. Chính Gián, Q. Thanh Khê', d: 'Khu biệt thự Đảo Xanh, P. Hòa Cường Bắc, Q. Hải Châu', dist: 6.5, pr: 160000 },
+          { p: 'Beer Club Bờ Sông Hàn, 32 Bạch Đằng, P. Thạch Thang, Q. Hải Châu', d: 'Hẻm 120 Điện Biên Phủ, P. Hòa Minh, Q. Liên Chiểu', dist: 12.8, pr: 250000 }
+        ],
+        'Thanh Hóa': [
+          { p: 'Nhà hàng Dê Tươi Rừng Thông, 128 Lê Lợi, P. Đông Hương, TP. Thanh Hóa', d: 'Khu biệt thự ven biển FLC, P. Quảng Cư, TP. Sầm Sơn', dist: 16.5, pr: 260000 },
+          { p: 'Quán Nhậu Nướng Ngói Phố Mới, 45 Quang Trung, P. Ngọc Trạo, TP. Thanh Hóa', d: 'Khu công nghiệp Lễ Môn, P. Quảng Hưng, TP. Thanh Hóa', dist: 7.8, pr: 170000 },
+          { p: 'Bia Hơi Lam Sơn, 22 Bà Triệu, P. Trường Thi, TP. Thanh Hóa', d: 'Khu đô thị Bình Minh, P. Đông Hương, TP. Thanh Hóa', dist: 5.5, pr: 140000 }
+        ]
+      };
+
+      const pool = venuePools[targetProvince] || venuePools['Đà Nẵng'];
+      const shuffledVenues = [...pool].sort(() => 0.5 - Math.random()).slice(0, 3);
+
+      generatedTrips = shuffledVenues.map((v, idx) => ({
+        pickup_location: v.p,
+        dropoff_location: v.d,
+        distance_km: v.dist,
+        estimated_minutes: Math.round(v.dist * 1.6 + 5),
+        price: v.pr,
+        service_tags: ['Lái xe hộ', targetProvince],
+        customer_name: shuffledNames[idx % shuffledNames.length],
+        customer_phone: `09${Math.floor(10 + Math.random() * 89)} ${Math.floor(100 + Math.random() * 900)} ${Math.floor(100 + Math.random() * 900)}`,
+        notes: `Xe ${shuffledCars[idx % shuffledCars.length]}. ${shuffledSituations[idx % shuffledSituations.length]}`,
+        badge: ['Mới', 'Cuốc HOT', 'VIP'][idx % 3],
+        time_posted: ['Vừa xong', '1 phút trước', '3 phút trước'][idx % 3]
+      }));
+    }
 
     const createdList = [];
-    for (const item of sampleTrips) {
-      const tripId = 'vjob_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 5);
+    const now = Date.now();
+    for (let i = 0; i < generatedTrips.length; i++) {
+      const item = generatedTrips[i];
+      const tripId = 'vjob_' + (now + i).toString(36) + Math.random().toString(36).substring(2, 6);
       const trip = await Trip.create({
         id: tripId,
-        badge: 'Mới',
+        badge: item.badge || 'Mới',
         pickup_location: item.pickup_location,
         dropoff_location: item.dropoff_location,
         distance_km: item.distance_km,
         estimated_minutes: item.estimated_minutes,
         price: item.price,
-        service_tags: item.service_tags,
+        service_tags: item.service_tags || ['Lái xe hộ', targetProvince],
         status: 'new',
         is_virtual: true,
-        time_posted: item.time_posted,
-        customer_name: 'Khách đặt tự động',
-        customer_phone: '0977 123 789'
+        time_posted: item.time_posted || 'Vừa xong',
+        customer_name: item.customer_name || 'Khách hàng',
+        customer_phone: item.customer_phone || '0988 888 888',
+        notes: item.notes || null
       });
       createdList.push(trip);
     }
 
     res.json({
       success: true,
-      message: `Đã tự động tạo ${createdList.length} cuốc xe ảo vào bảng tin!`,
+      message: `Đã tự động tạo ${createdList.length} cuốc xe ảo đa dạng cho ${targetProvince}!`,
+      province: targetProvince,
       data: createdList
     });
   } catch (error) {
